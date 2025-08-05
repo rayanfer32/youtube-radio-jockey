@@ -7,6 +7,9 @@ class YouTubeRJMode {
     this.isRJPlaying = false;
     this.audioContext = null;
     this.gainNode = null;
+    this.lastProcessedVideo = ""; // Track last processed video to prevent loops
+    this.isGeneratingCommentary = false; // Prevent multiple simultaneous generations
+    this.videoChangeTimeout = null; // Debounce video changes
 
     this.init();
   }
@@ -203,6 +206,28 @@ class YouTubeRJMode {
   }
 
   async generateAndPlayRJCommentary() {
+    // Prevent multiple simultaneous commentary generations
+    if (this.isGeneratingCommentary || this.isRJPlaying) {
+      console.log("Commentary already in progress, skipping...");
+      return;
+    }
+
+    // Check if we've already processed this video
+    const videoId = this.extractVideoId();
+    if (videoId === this.lastProcessedVideo) {
+      console.log("Already processed this video, skipping...");
+      return;
+    }
+
+    // Ensure we have a current video title
+    if (!this.currentVideoTitle || this.currentVideoTitle.trim() === "") {
+      console.log("No current video title found, skipping...");
+      return;
+    }
+
+    this.isGeneratingCommentary = true;
+    this.lastProcessedVideo = videoId;
+
     try {
       // Show loading indicator
       this.showLoadingIndicator();
@@ -221,7 +246,19 @@ class YouTubeRJMode {
       console.error("RJ Commentary generation failed:", error);
       this.hideLoadingIndicator();
       this.showErrorMessage(error.message);
+    } finally {
+      this.isGeneratingCommentary = false;
     }
+  }
+
+  extractVideoId() {
+    // Extract video ID from current URL or video element
+    const urlParams = new URLSearchParams(window.location.search);
+    const videoId = urlParams.get("v");
+    if (videoId) return videoId;
+
+    // Fallback: use video title as identifier
+    return this.currentVideoTitle;
   }
 
   showLoadingIndicator() {
@@ -463,25 +500,67 @@ Create engaging commentary that connects with listeners. Be natural, enthusiasti
   }
 
   async playRJCommentary(audioBlob) {
-    // Duck the YouTube video volume
-    await this.duckVolume(0.3); // Reduce to 30%
-
-    // Create and play RJ audio
-    const audioUrl = URL.createObjectURL(audioBlob);
-    const audio = new Audio(audioUrl);
-
-    audio.addEventListener("loadeddata", () => {
-      audio.play();
-    });
-
-    audio.addEventListener("ended", async () => {
-      // Restore original volume
-      await this.restoreVolume();
-      URL.revokeObjectURL(audioUrl);
-      this.isRJPlaying = false;
-    });
+    // Prevent multiple audio playback
+    if (this.isRJPlaying) {
+      console.log("RJ already playing, skipping...");
+      return;
+    }
 
     this.isRJPlaying = true;
+
+    try {
+      // Duck the YouTube video volume
+      await this.duckVolume(0.3); // Reduce to 30%
+
+      // Create and play RJ audio
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+
+      // Set up audio event listeners
+      audio.addEventListener("loadeddata", () => {
+        console.log("RJ audio loaded, starting playback...");
+        audio.play().catch((error) => {
+          console.error("Audio playback failed:", error);
+          this.restoreVolumeAndCleanup(audioUrl);
+        });
+      });
+
+      audio.addEventListener("ended", () => {
+        console.log("RJ audio finished");
+        this.restoreVolumeAndCleanup(audioUrl);
+      });
+
+      audio.addEventListener("error", (error) => {
+        console.error("Audio error:", error);
+        this.restoreVolumeAndCleanup(audioUrl);
+      });
+
+      // Fallback timeout in case audio events don't fire
+      setTimeout(() => {
+        if (this.isRJPlaying) {
+          console.log("RJ audio timeout, cleaning up...");
+          this.restoreVolumeAndCleanup(audioUrl);
+        }
+      }, 60000); // 60 second maximum
+    } catch (error) {
+      console.error("Error playing RJ commentary:", error);
+      this.isRJPlaying = false;
+      await this.restoreVolume();
+    }
+  }
+
+  async restoreVolumeAndCleanup(audioUrl) {
+    // Restore original volume
+    await this.restoreVolume();
+
+    // Clean up audio URL
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+    }
+
+    // Reset playing state
+    this.isRJPlaying = false;
+    console.log("RJ commentary cleanup completed");
   }
 
   async duckVolume(targetLevel) {
@@ -523,39 +602,94 @@ Create engaging commentary that connects with listeners. Be natural, enthusiasti
   }
 
   setupVideoEventListeners() {
-    // Listen for video changes in playlist
+    // Better video change detection with debouncing
     const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (
-          mutation.type === "childList" &&
-          this.isRJModeActive &&
-          !this.isRJPlaying
-        ) {
-          // Check if video title changed (new song started)
-          const newTitle = document
-            .querySelector(
-              "h1.title.style-scope.ytd-video-primary-info-renderer"
-            )
-            ?.textContent?.trim();
-          if (newTitle && newTitle !== this.currentVideoTitle) {
-            setTimeout(() => {
-              this.getCurrentAndNextTitles();
-              this.generateAndPlayRJCommentary();
-            }, 2000); // Wait 2 seconds for video to start
-          }
-        }
-      });
+      if (
+        !this.isRJModeActive ||
+        this.isRJPlaying ||
+        this.isGeneratingCommentary
+      ) {
+        return;
+      }
+
+      // Clear existing timeout
+      if (this.videoChangeTimeout) {
+        clearTimeout(this.videoChangeTimeout);
+      }
+
+      // Debounce video changes to prevent rapid firing
+      this.videoChangeTimeout = setTimeout(() => {
+        this.handleVideoChange();
+      }, 3000); // Wait 3 seconds after last change
     });
 
     observer.observe(document.body, {
       childList: true,
       subtree: true,
     });
+
+    // Also listen for URL changes (YouTube SPA navigation)
+    let lastUrl = location.href;
+    const urlObserver = new MutationObserver(() => {
+      const url = location.href;
+      if (url !== lastUrl) {
+        lastUrl = url;
+
+        // Clear timeout and reset state on URL change
+        if (this.videoChangeTimeout) {
+          clearTimeout(this.videoChangeTimeout);
+        }
+
+        setTimeout(() => {
+          if (
+            this.isRJModeActive &&
+            !this.isRJPlaying &&
+            !this.isGeneratingCommentary
+          ) {
+            this.handleVideoChange();
+          }
+        }, 2000);
+      }
+    });
+
+    urlObserver.observe(document, { subtree: true, childList: true });
+  }
+
+  handleVideoChange() {
+    // Get current video info
+    const newTitle = document
+      .querySelector("h1.title.style-scope.ytd-video-primary-info-renderer")
+      ?.textContent?.trim();
+    const newVideoId = this.extractVideoId();
+
+    // Only proceed if we have a new video
+    if (
+      newTitle &&
+      newTitle !== this.currentVideoTitle &&
+      newVideoId !== this.lastProcessedVideo
+    ) {
+      console.log("New video detected:", newTitle);
+      this.getCurrentAndNextTitles();
+      this.generateAndPlayRJCommentary();
+    }
   }
 
   stopRJMode() {
     this.isRJModeActive = false;
     this.isRJPlaying = false;
+    this.isGeneratingCommentary = false;
+    this.lastProcessedVideo = "";
+
+    // Clear any pending timeouts
+    if (this.videoChangeTimeout) {
+      clearTimeout(this.videoChangeTimeout);
+      this.videoChangeTimeout = null;
+    }
+
+    // Clean up any loading indicators
+    this.hideLoadingIndicator();
+
+    console.log("RJ Mode stopped and cleaned up");
   }
 }
 
