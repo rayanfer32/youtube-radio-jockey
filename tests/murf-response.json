@@ -1,0 +1,26 @@
+{
+  "audioFile": "https://murf.ai/user-upload/one-day-temp/1ab5546a-c621-47c9-9db6-e7ae0d43e7da.wav?response-cache-control=max-age%3D604801&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20250804T000000Z&X-Amz-SignedHeaders=host&X-Amz-Expires=259200&X-Amz-Credential=AKIA27M5532DYKBCJICE%2F20250804%2Fus-east-2%2Fs3%2Faws4_request&X-Amz-Signature=cf64f598117c6736c7f07f0c508527810b9f9bc18faea6f66fc998fca6bf6320",
+  "encodedAudio": null,
+  "audioLengthInSeconds": 21.097506,
+  "wordDurations": [
+    {
+      "word": "That",
+      "startMs": 0,
+      "endMs": 487,
+      "sourceWordIndex": -1,
+      "pitchScaleMinimum": 0,
+      "pitchScaleMaximum": 0
+    },
+    {
+      "word": "was",
+      "startMs": 487,
+      "endMs": 626,
+      "sourceWordIndex": -1,
+      "pitchScaleMinimum": 0,
+      "pitchScaleMaximum": 0
+    }
+  ],
+  "warning": null,
+  "consumedCharacterCount": 0,
+  "remainingCharacterCount": 99635
+}
