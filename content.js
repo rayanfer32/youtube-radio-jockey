@@ -199,9 +199,10 @@ class YouTubeRJMode {
     this.currentVideoTitle = currentTitleElement?.textContent?.trim() || "";
 
     // Get next video title from playlist
-    const nextVideoElement = document.querySelector(
-      ".ytd-playlist-panel-video-renderer[selected] + .ytd-playlist-panel-video-renderer #video-title"
-    );
+    const nextVideoElement = document
+      .querySelector("#playlist-items[selected]")
+      .nextSibling.querySelector("#video-title");
+
     this.nextVideoTitle = nextVideoElement?.textContent?.trim() || "";
   }
 
