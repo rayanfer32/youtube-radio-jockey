@@ -1,3 +1,7 @@
+const logger = {
+  log: (...args) => console.log("DEVLOG", ...args),
+};
+
 class YouTubeRJMode {
   constructor() {
     this.isRJModeActive = false;
@@ -186,9 +190,10 @@ class YouTubeRJMode {
   async startRJMode() {
     this.getCurrentAndNextTitles();
 
-    if (this.currentVideoTitle) {
-      await this.generateAndPlayRJCommentary();
-    }
+    // ! video progress listener will take care of this
+    // if (this.currentVideoTitle) {
+    //   await this.generateAndPlayRJCommentary();
+    // }
   }
 
   getCurrentAndNextTitles() {
@@ -209,20 +214,20 @@ class YouTubeRJMode {
   async generateAndPlayRJCommentary() {
     // Prevent multiple simultaneous commentary generations
     if (this.isGeneratingCommentary || this.isRJPlaying) {
-      console.log("Commentary already in progress, skipping...");
+      logger.log("Commentary already in progress, skipping...");
       return;
     }
 
     // Check if we've already processed this video
     const videoId = this.extractVideoId();
     if (videoId === this.lastProcessedVideo) {
-      console.log("Already processed this video, skipping...");
+      logger.log("Already processed this video, skipping...");
       return;
     }
 
     // Ensure we have a current video title
     if (!this.currentVideoTitle || this.currentVideoTitle.trim() === "") {
-      console.log("No current video title found, skipping...");
+      logger.log("No current video title found, skipping...");
       return;
     }
 
@@ -488,7 +493,7 @@ Create engaging commentary that connects with listeners. Be natural, enthusiasti
 
       // Log remaining character count for user awareness
       if (data.remainingCharacterCount !== undefined) {
-        console.log(
+        logger.log(
           `Murf.ai characters remaining: ${data.remainingCharacterCount}`
         );
       }
@@ -503,7 +508,7 @@ Create engaging commentary that connects with listeners. Be natural, enthusiasti
   async playRJCommentary(audioBlob) {
     // Prevent multiple audio playback
     if (this.isRJPlaying) {
-      console.log("RJ already playing, skipping...");
+      logger.log("RJ already playing, skipping...");
       return;
     }
 
@@ -511,7 +516,7 @@ Create engaging commentary that connects with listeners. Be natural, enthusiasti
 
     try {
       // Duck the YouTube video volume
-      await this.duckVolume(0.3); // Reduce to 30%
+      await this.duckVolume(0.1); // Reduce to 30%
 
       // Create and play RJ audio
       const audioUrl = URL.createObjectURL(audioBlob);
@@ -519,7 +524,7 @@ Create engaging commentary that connects with listeners. Be natural, enthusiasti
 
       // Set up audio event listeners
       audio.addEventListener("loadeddata", () => {
-        console.log("RJ audio loaded, starting playback...");
+        logger.log("RJ audio loaded, starting playback...");
         audio.play().catch((error) => {
           console.error("Audio playback failed:", error);
           this.restoreVolumeAndCleanup(audioUrl);
@@ -527,7 +532,7 @@ Create engaging commentary that connects with listeners. Be natural, enthusiasti
       });
 
       audio.addEventListener("ended", () => {
-        console.log("RJ audio finished");
+        logger.log("RJ audio finished");
         this.restoreVolumeAndCleanup(audioUrl);
       });
 
@@ -539,7 +544,7 @@ Create engaging commentary that connects with listeners. Be natural, enthusiasti
       // Fallback timeout in case audio events don't fire
       setTimeout(() => {
         if (this.isRJPlaying) {
-          console.log("RJ audio timeout, cleaning up...");
+          logger.log("RJ audio timeout, cleaning up...");
           this.restoreVolumeAndCleanup(audioUrl);
         }
       }, 60000); // 60 second maximum
@@ -561,7 +566,7 @@ Create engaging commentary that connects with listeners. Be natural, enthusiasti
 
     // Reset playing state
     this.isRJPlaying = false;
-    console.log("RJ commentary cleanup completed");
+    logger.log("RJ commentary cleanup completed");
   }
 
   async duckVolume(targetLevel) {
@@ -603,31 +608,68 @@ Create engaging commentary that connects with listeners. Be natural, enthusiasti
   }
 
   setupVideoEventListeners() {
-    // Better video change detection with debouncing
-    const observer = new MutationObserver((mutations) => {
-      if (
-        !this.isRJModeActive ||
-        this.isRJPlaying ||
-        this.isGeneratingCommentary
-      ) {
-        return;
-      }
+    // Progress check interval
+    let progressInterval = null;
 
-      // Clear existing timeout
+    // Monitor video progress
+    const checkVideoProgress = () => {
+      const video = document.querySelector("video");
+      if (!video || !this.isRJModeActive) return;
+
+      const timeRemaining = video.duration - video.currentTime;
+
+      // Start commentary when 30 seconds remain and not already playing
+      if (
+        timeRemaining <= 30 &&
+        !this.isRJPlaying &&
+        !this.isGeneratingCommentary
+      ) {
+        this.getCurrentAndNextTitles();
+        this.generateAndPlayRJCommentary();
+      }
+    };
+
+    // Set up video progress monitoring
+    const setupProgressMonitoring = () => {
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
+      progressInterval = setInterval(checkVideoProgress, 1000);
+    };
+
+    // Clear progress monitoring
+    const clearProgressMonitoring = () => {
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
+    };
+
+    // Video change detection with debouncing
+    const observer = new MutationObserver(() => {
+      if (!this.isRJModeActive) return;
+
+      // Clear existing timeout and monitoring
       if (this.videoChangeTimeout) {
         clearTimeout(this.videoChangeTimeout);
       }
+      clearProgressMonitoring();
 
-      // Debounce video changes to prevent rapid firing
+      // Debounce video changes
       this.videoChangeTimeout = setTimeout(() => {
-        this.handleVideoChange();
-      }, 3000); // Wait 3 seconds after last change
+        setupProgressMonitoring();
+      }, 3000);
     });
 
     observer.observe(document.body, {
       childList: true,
       subtree: true,
     });
+
+    // Start monitoring when RJ mode is active
+    if (this.isRJModeActive) {
+      setupProgressMonitoring();
+    }
 
     // Also listen for URL changes (YouTube SPA navigation)
     let lastUrl = location.href;
@@ -669,7 +711,7 @@ Create engaging commentary that connects with listeners. Be natural, enthusiasti
       newTitle !== this.currentVideoTitle &&
       newVideoId !== this.lastProcessedVideo
     ) {
-      console.log("New video detected:", newTitle);
+      logger.log("New video detected:", newTitle);
       this.getCurrentAndNextTitles();
       this.generateAndPlayRJCommentary();
     }
@@ -681,16 +723,22 @@ Create engaging commentary that connects with listeners. Be natural, enthusiasti
     this.isGeneratingCommentary = false;
     this.lastProcessedVideo = "";
 
-    // Clear any pending timeouts
+    // Clear any pending timeouts and intervals
     if (this.videoChangeTimeout) {
       clearTimeout(this.videoChangeTimeout);
       this.videoChangeTimeout = null;
     }
 
+    // Clear all intervals (including progress monitoring)
+    const maxIntervalId = setInterval(() => {}, 0);
+    for (let i = 1; i <= maxIntervalId; i++) {
+      clearInterval(i);
+    }
+
     // Clean up any loading indicators
     this.hideLoadingIndicator();
 
-    console.log("RJ Mode stopped and cleaned up");
+    logger.log("RJ Mode stopped and cleaned up");
   }
 }
 
