@@ -343,11 +343,12 @@ Create engaging commentary that connects with listeners. Be natural, enthusiasti
 
     try {
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`,
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "X-goog-api-key": geminiApiKey,
           },
           body: JSON.stringify({
             contents: [
@@ -413,28 +414,48 @@ Create engaging commentary that connects with listeners. Be natural, enthusiasti
       const response = await fetch("https://api.murf.ai/v1/speech/generate", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${murfApiKey}`,
+          "api-key": murfApiKey,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          voiceId: voiceId || "en-US-davis",
-          style: voiceStyle || "Conversational",
           text: text,
-          rate: 0,
-          pitch: 0,
-          sampleRate: 48000,
-          format: "MP3",
-          channelType: "MONO",
+          voiceId: voiceId || "en-US-natalie",
+          style: voiceStyle || "Promo",
         }),
       });
 
       if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(
-          `Murf.ai API error: ${response.status} ${response.statusText}`
+          `Murf.ai API error: ${response.status} ${response.statusText} - ${
+            errorData.message || "Unknown error"
+          }`
         );
       }
 
-      return await response.blob();
+      const data = await response.json();
+
+      if (!data.audioFile) {
+        throw new Error("No audio file returned from Murf.ai API");
+      }
+
+      // Fetch the actual audio file from the returned URL
+      const audioResponse = await fetch(data.audioFile);
+      if (!audioResponse.ok) {
+        throw new Error("Failed to fetch audio file from Murf.ai");
+      }
+
+      // Store audio duration for UI feedback
+      this.lastAudioDuration = data.audioLengthInSeconds;
+
+      // Log remaining character count for user awareness
+      if (data.remainingCharacterCount !== undefined) {
+        console.log(
+          `Murf.ai characters remaining: ${data.remainingCharacterCount}`
+        );
+      }
+
+      return await audioResponse.blob();
     } catch (error) {
       console.error("Murf.ai TTS error:", error);
       throw new Error(`Failed to generate speech: ${error.message}`);
