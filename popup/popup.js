@@ -5,7 +5,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     'murfApiKey',
     'commentaryLength',
     'rjStyle',
-    'voiceGender',
+    'voiceId',
+    'voiceStyle',
     'volumeDucking',
     'darkMode',
     'autoStart'
@@ -16,7 +17,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (settings.murfApiKey) document.getElementById('murfApiKey').value = settings.murfApiKey;
   if (settings.commentaryLength) document.getElementById('commentaryLength').value = settings.commentaryLength;
   if (settings.rjStyle) document.getElementById('rjStyle').value = settings.rjStyle;
-  if (settings.voiceGender) document.getElementById('voiceGender').value = settings.voiceGender;
+  if (settings.voiceId) document.getElementById('voiceId').value = settings.voiceId;
+  if (settings.voiceStyle) document.getElementById('voiceStyle').value = settings.voiceStyle;
   if (settings.volumeDucking) {
     document.getElementById('volumeDucking').value = settings.volumeDucking;
     document.getElementById('duckingValue').textContent = settings.volumeDucking + '%';
@@ -36,7 +38,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       murfApiKey: document.getElementById('murfApiKey').value,
       commentaryLength: document.getElementById('commentaryLength').value,
       rjStyle: document.getElementById('rjStyle').value,
-      voiceGender: document.getElementById('voiceGender').value,
+      voiceId: document.getElementById('voiceId').value,
+      voiceStyle: document.getElementById('voiceStyle').value,
       volumeDucking: document.getElementById('volumeDucking').value,
       darkMode: document.getElementById('darkMode').checked,
       autoStart: document.getElementById('autoStart').checked
