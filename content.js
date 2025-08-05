@@ -37,6 +37,103 @@ class YouTubeRJMode {
     }
   }
 
+  showRJModePrompt() {
+    // Create a more prominent notification for playlist detection
+    const notification = document.createElement("div");
+    notification.id = "rj-mode-notification";
+    notification.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span>🎙️</span>
+        <div>
+          <strong>Playlist Detected!</strong>
+          <br>
+          <small>Ready to add some RJ magic?</small>
+        </div>
+        <button id="enable-rj-mode" style="
+          background: linear-gradient(45deg, #4CAF50, #45a049);
+          color: white;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 20px;
+          cursor: pointer;
+          font-weight: bold;
+          margin-left: auto;
+        ">Enable RJ Mode</button>
+        <button id="dismiss-rj-prompt" style="
+          background: transparent;
+          color: #666;
+          border: none;
+          cursor: pointer;
+          font-size: 18px;
+          padding: 5px;
+        ">×</button>
+      </div>
+    `;
+
+    notification.style.cssText = `
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      z-index: 10000;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      color: #333;
+      padding: 15px 20px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      max-width: 350px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      animation: slideInRight 0.3s ease-out;
+    `;
+
+    // Add CSS animation
+    if (!document.getElementById("rj-mode-styles")) {
+      const style = document.createElement("style");
+      style.id = "rj-mode-styles";
+      style.textContent = `
+        @keyframes slideInRight {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOutRight {
+          from { transform: translateX(0); opacity: 1; }
+          to { transform: translateX(100%); opacity: 0; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    document.body.appendChild(notification);
+
+    // Event listeners for the notification
+    document.getElementById("enable-rj-mode").addEventListener("click", () => {
+      this.dismissNotification();
+      this.toggleRJMode();
+    });
+
+    document
+      .getElementById("dismiss-rj-prompt")
+      .addEventListener("click", () => {
+        this.dismissNotification();
+      });
+
+    // Auto-dismiss after 10 seconds
+    setTimeout(() => {
+      this.dismissNotification();
+    }, 10000);
+  }
+
+  dismissNotification() {
+    const notification = document.getElementById("rj-mode-notification");
+    if (notification) {
+      notification.style.animation = "slideOutRight 0.3s ease-in";
+      setTimeout(() => {
+        notification.remove();
+      }, 300);
+    }
+  }
+
   createRJModeButton() {
     const button = document.createElement("button");
     button.id = "rj-mode-button";
@@ -107,6 +204,9 @@ class YouTubeRJMode {
 
   async generateAndPlayRJCommentary() {
     try {
+      // Show loading indicator
+      this.showLoadingIndicator();
+
       // Generate script using Gemini API
       const script = await this.generateRJScript();
 
@@ -115,45 +215,185 @@ class YouTubeRJMode {
 
       // Play the commentary
       await this.playRJCommentary(audioBlob);
+
+      this.hideLoadingIndicator();
     } catch (error) {
       console.error("RJ Commentary generation failed:", error);
+      this.hideLoadingIndicator();
+      this.showErrorMessage(error.message);
     }
   }
 
+  showLoadingIndicator() {
+    if (document.getElementById("rj-loading")) return;
+
+    const loading = document.createElement("div");
+    loading.id = "rj-loading";
+    loading.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div class="spinner"></div>
+        <span>🎙️ Preparing RJ commentary...</span>
+      </div>
+    `;
+
+    loading.style.cssText = `
+      position: fixed;
+      top: 140px;
+      right: 20px;
+      z-index: 9999;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 10px 15px;
+      border-radius: 8px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+    `;
+
+    // Add spinner CSS if not exists
+    if (!document.getElementById("spinner-styles")) {
+      const style = document.createElement("style");
+      style.id = "spinner-styles";
+      style.textContent = `
+        .spinner {
+          width: 16px;
+          height: 16px;
+          border: 2px solid #333;
+          border-top: 2px solid #fff;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    document.body.appendChild(loading);
+  }
+
+  hideLoadingIndicator() {
+    const loading = document.getElementById("rj-loading");
+    if (loading) loading.remove();
+  }
+
+  showErrorMessage(message) {
+    const error = document.createElement("div");
+    error.style.cssText = `
+      position: fixed;
+      top: 140px;
+      right: 20px;
+      z-index: 9999;
+      background: #ff4757;
+      color: white;
+      padding: 10px 15px;
+      border-radius: 8px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      max-width: 350px;
+    `;
+    error.textContent = `❌ ${message}`;
+
+    document.body.appendChild(error);
+
+    setTimeout(() => {
+      error.remove();
+    }, 5000);
+  }
+
   async generateRJScript() {
-    const { geminiApiKey } = await chrome.storage.sync.get(["geminiApiKey"]);
+    const { geminiApiKey, rjStyle, commentaryLength } =
+      await chrome.storage.sync.get([
+        "geminiApiKey",
+        "rjStyle",
+        "commentaryLength",
+      ]);
 
-    const prompt = `You are an energetic radio DJ. Create a short, upbeat commentary (30-45 seconds when spoken) about the current song "${
-      this.currentVideoTitle
-    }"${
-      this.nextVideoTitle
-        ? ` and briefly mention the next song "${this.nextVideoTitle}"`
-        : ""
-    }. Be enthusiastic, add some humor, and keep it engaging. Don't be too long-winded.`;
+    if (!geminiApiKey) {
+      throw new Error(
+        "Gemini API key not configured. Please set it in the extension popup."
+      );
+    }
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: prompt,
-                },
-              ],
-            },
-          ],
-        }),
+    const stylePrompts = {
+      energetic:
+        "You are a high-energy radio DJ who's absolutely pumped about music!",
+      chill: "You are a laid-back DJ with a smooth, relaxed vibe.",
+      sarcastic:
+        "You are a witty DJ who adds clever commentary with a touch of sarcasm.",
+      professional: "You are a professional radio host with polished delivery.",
+    };
+
+    const lengthGuides = {
+      short: "Keep it brief and punchy (20-30 seconds when spoken)",
+      medium: "Moderate length with good flow (30-45 seconds when spoken)",
+      long: "More detailed commentary (45-60 seconds when spoken)",
+    };
+
+    const basePrompt = stylePrompts[rjStyle || "energetic"];
+    const lengthGuide = lengthGuides[commentaryLength || "medium"];
+
+    const prompt = `${basePrompt} ${lengthGuide}. 
+    
+Current song: "${this.currentVideoTitle}"
+${this.nextVideoTitle ? `Next up: "${this.nextVideoTitle}"` : ""}
+
+Create engaging commentary that connects with listeners. Be natural, enthusiastic, and add personality. Don't just read the song titles - make it conversational and fun!`;
+
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: prompt,
+                  },
+                ],
+              },
+            ],
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Gemini API error: ${response.status} ${response.statusText}`
+        );
       }
-    );
 
-    const data = await response.json();
-    return data.candidates[0].content.parts[0].text;
+      const data = await response.json();
+
+      if (
+        !data.candidates ||
+        !data.candidates[0] ||
+        !data.candidates[0].content
+      ) {
+        throw new Error("Invalid response from Gemini API");
+      }
+
+      const script = data.candidates[0].content.parts[0].text;
+
+      // Log the commentary for export feature
+      chrome.runtime.sendMessage({
+        action: "logCommentary",
+        currentSong: this.currentVideoTitle,
+        nextSong: this.nextVideoTitle,
+        script: script,
+      });
+
+      return script;
+    } catch (error) {
+      console.error("Gemini API error:", error);
+      throw new Error(`Failed to generate RJ script: ${error.message}`);
+    }
   }
 
   async generateTTS(text) {
@@ -163,25 +403,42 @@ class YouTubeRJMode {
       "voiceStyle",
     ]);
 
-    const response = await fetch("https://api.murf.ai/v1/speech/generate", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${murfApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        voiceId: voiceId || "en-US-davis",
-        style: voiceStyle || "Conversational",
-        text: text,
-        rate: 0,
-        pitch: 0,
-        sampleRate: 48000,
-        format: "MP3",
-        channelType: "MONO",
-      }),
-    });
+    if (!murfApiKey) {
+      throw new Error(
+        "Murf.ai API key not configured. Please set it in the extension popup."
+      );
+    }
 
-    return await response.blob();
+    try {
+      const response = await fetch("https://api.murf.ai/v1/speech/generate", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${murfApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          voiceId: voiceId || "en-US-davis",
+          style: voiceStyle || "Conversational",
+          text: text,
+          rate: 0,
+          pitch: 0,
+          sampleRate: 48000,
+          format: "MP3",
+          channelType: "MONO",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Murf.ai API error: ${response.status} ${response.statusText}`
+        );
+      }
+
+      return await response.blob();
+    } catch (error) {
+      console.error("Murf.ai TTS error:", error);
+      throw new Error(`Failed to generate speech: ${error.message}`);
+    }
   }
 
   async playRJCommentary(audioBlob) {
@@ -298,31 +555,8 @@ new MutationObserver(() => {
     lastUrl = url;
     setTimeout(() => {
       if (url.includes("youtube.com") && url.includes("list=")) {
-        console.log('Navigated to YouTube playlist');
         new YouTubeRJMode();
       }
     }, 1000);
   }
 }).observe(document, { subtree: true, childList: true });
-
-function generateRJPrompt(currentSong, nextSong, style, length) {
-  const basePrompts = {
-    energetic:
-      "You're a high-energy radio DJ who's absolutely pumped about music!",
-    chill: "You're a laid-back DJ with a smooth, relaxed vibe.",
-    sarcastic:
-      "You're a witty DJ who adds clever commentary with a touch of sarcasm.",
-    professional: "You're a professional radio host with polished delivery.",
-  };
-
-  const lengthGuides = {
-    short: "Keep it brief and punchy (20-30 seconds when spoken)",
-    medium: "Moderate length with good flow (30-45 seconds when spoken)",
-    long: "More detailed commentary (45-60 seconds when spoken)",
-  };
-
-  return `${basePrompts[style]} ${lengthGuides[length]}. 
-          Current song: "${currentSong}"
-          ${nextSong ? `Next up: "${nextSong}"` : ""}
-          Create engaging commentary that connects with listeners.`;
-}
