@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 350px;
+      padding: 20px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      margin: 0;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .section {
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 15px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .setting-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    
+    .setting-row:last-child {
+      margin-bottom: 0;
+    }
+    
+    select, input[type="range"], button {
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      border-radius: 5px;
+      padding: 5px 10px;
+    }
+    
+    select option {
+      background: #444;
+      color: white;
+    }
+    
+    .api-input {
+      width: 100%;
+      margin-top: 5px;
+      padding: 8px;
+      border-radius: 5px;
+      border: 1px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.1);
+      color: white;
+    }
+    
+    .api-input::placeholder {
+      color: rgba(255,255,255,0.7);
+    }
+    
+    .save-btn {
+      background: linear-gradient(45deg, #4CAF50, #45a049);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 25px;
+      cursor: pointer;
+      width: 100%;
+      font-weight: bold;
+      margin-top: 10px;
+      transition: transform 0.2s ease;
+    }
+    
+    .save-btn:hover {
+      transform: scale(1.02);
+    }
+    
+    .status {
+      text-align: center;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    
+    .status.success {
+      background: rgba(76, 175, 80, 0.2);
+      border: 1px solid rgba(76, 175, 80, 0.5);
+    }
+    
+    .status.error {
+      background: rgba(244, 67, 54, 0.2);
+      border: 1px solid rgba(244, 67, 54, 0.5);
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🎙️ YouTube RJ Mode</h1>
+  </div>
+  
+  <div class="section">
+    <h3>API Configuration</h3>
+    <label>Gemini API Key:</label>
+    <input type="password" id="geminiApiKey" class="api-input" placeholder="Enter your Gemini API key">
+    
+    <label>Murf.ai API Key:</label>
+    <input type="password" id="murfApiKey" class="api-input" placeholder="Enter your Murf.ai API key">
+  </div>
+  
+  <div class="section">
+    <h3>RJ Settings</h3>
+    
+    <div class="setting-row">
+      <label>Commentary Length:</label>
+      <select id="commentaryLength">
+        <option value="short">Short (20-30s)</option>
+        <option value="medium" selected>Medium (30-45s)</option>
+        <option value="long">Long (45-60s)</option>
+      </select>
+    </div>
+    
+    <div class="setting-row">
+      <label>RJ Style:</label>
+      <select id="rjStyle">
+        <option value="energetic" selected>Energetic</option>
+        <option value="chill">Chill</option>
+        <option value="sarcastic">Sarcastic</option>
+        <option value="professional">Professional</option>
+      </select>
+    </div>
+    
+    <div class="setting-row">
+      <label>Voice Gender:</label>
+      <select id="voiceGender">
+        <option value="male" selected>Male</option>
+        <option value="female">Female</option>
+      </select>
+    </div>
+    
+    <div class="setting-row">
+      <label>Volume Ducking:</label>
+      <input type="range" id="volumeDucking" min="10" max="90" value="70">
+      <span id="duckingValue">70%</span>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h3>Features</h3>
+    
+    <div class="setting-row">
+      <label>Dark Mode:</label>
+      <input type="checkbox" id="darkMode">
+    </div>
+    
+    <div class="setting-row">
+      <label>Auto-start on Playlists:</label>
+      <input type="checkbox" id="autoStart">
+    </div>
+  </div>
+  
+  <button class="save-btn" id="saveSettings">Save Settings</button>
+  
+  <div class="section">
+    <button id="exportLogs" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 5px; cursor: pointer;">
+      📁 Export Commentary Logs
+    </button>
+  </div>
+  
+  <div id="status" class="status" style="display: none;"></div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
