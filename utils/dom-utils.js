@@ -76,7 +76,7 @@ const showErrorMessage = (message) => {
   }, 5000);
 };
 
-const createRJModeButton = () => {
+const createRJModeButton = (toggleRJMode) => {
   const button = document.createElement("button");
   button.id = "rj-mode-button";
   button.innerHTML = "🎙️ Start RJ Mode";
@@ -96,7 +96,7 @@ const createRJModeButton = () => {
       transition: transform 0.2s ease;
     `;
 
-  button.addEventListener("click", () => this.toggleRJMode());
+  button.addEventListener("click", () => toggleRJMode());
   button.addEventListener("mouseover", () => {
     button.style.transform = "scale(1.05)";
   });
@@ -117,7 +117,7 @@ const dismissNotification = () => {
   }
 };
 
-const showRJModePrompt = () => {
+const showRJModePrompt = (toggleRJMode) => {
   // Create a more prominent notification for playlist detection
   const notification = document.createElement("div");
   notification.id = "rj-mode-notification";
@@ -189,7 +189,7 @@ const showRJModePrompt = () => {
   // Event listeners for the notification
   document.getElementById("enable-rj-mode").addEventListener("click", () => {
     dismissNotification();
-    this.toggleRJMode();
+    toggleRJMode();
   });
 
   document.getElementById("dismiss-rj-prompt").addEventListener("click", () => {

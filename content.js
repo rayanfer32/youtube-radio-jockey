@@ -18,7 +18,7 @@ class YouTubeRJMode {
     this.setupAudioContext();
     this.detectPlaylist();
     this.setupVideoEventListeners();
-    DomUtils.createRJModeButton();
+    DomUtils.createRJModeButton(this.toggleRJMode.bind(this));
   }
 
   setupAudioContext() {
@@ -34,7 +34,7 @@ class YouTubeRJMode {
       YouTubeUtils.isPlaylistPage() &&
       !document.getElementById("rj-mode-button")
     ) {
-      DomUtils.showRJModePrompt();
+      DomUtils.showRJModePrompt(this.toggleRJMode.bind(this));
     }
   }
 
