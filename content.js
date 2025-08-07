@@ -228,7 +228,7 @@ class YouTubeRJMode {
     // Clean up any loading indicators
     DomUtils.hideLoadingIndicator();
 
-    logger.log("RJ Mode stopped and cleaned up");
+    console.log("RJ Mode stopped and cleaned up");
   }
 
   setupVideoEventListeners() {
