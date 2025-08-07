@@ -4,10 +4,10 @@ chrome.runtime.onInstalled.addListener(() => {
   
   // Set default settings
   chrome.storage.sync.set({
-    commentaryLength: 'medium',
-    rjStyle: 'energetic',
+    commentaryLength: 'short',
+    rjStyle: 'sarcastic',
     voiceGender: 'male',
-    volumeDucking: 70,
+    volumeDucking: 10,
     darkMode: false,
     autoStart: false
   });

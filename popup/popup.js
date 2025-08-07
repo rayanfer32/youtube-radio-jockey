@@ -1,16 +1,6 @@
 document.addEventListener('DOMContentLoaded', async () => {
   // Load saved settings
-  const settings = await chrome.storage.sync.get([
-    'geminiApiKey',
-    'murfApiKey',
-    'commentaryLength',
-    'rjStyle',
-    'voiceId',
-    'voiceStyle',
-    'volumeDucking',
-    'darkMode',
-    'autoStart'
-  ]);
+  const settings = await chrome.storage.sync.get();
   
   // Populate form with saved values
   if (settings.geminiApiKey) document.getElementById('geminiApiKey').value = settings.geminiApiKey;
