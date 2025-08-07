@@ -19,7 +19,13 @@
   "content_scripts": [
     {
       "matches": ["https://www.youtube.com/*"],
-      "js": ["content.js"],
+      "js": [
+        "utils/dom-utils.js",
+        "utils/youtube-utils.js",
+        "utils/audio-utils.js", 
+        "utils/api-utils.js",
+        "content.js"
+      ],
       "run_at": "document_end"
     }
   ],

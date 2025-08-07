@@ -1,7 +1,3 @@
-const logger = {
-  log: (...args) => console.log("DEVLOG", ...args),
-};
-
 class YouTubeRJMode {
   constructor() {
     this.isRJModeActive = false;
@@ -11,9 +7,9 @@ class YouTubeRJMode {
     this.isRJPlaying = false;
     this.audioContext = null;
     this.gainNode = null;
-    this.lastProcessedVideo = ""; // Track last processed video to prevent loops
-    this.isGeneratingCommentary = false; // Prevent multiple simultaneous generations
-    this.videoChangeTimeout = null; // Debounce video changes
+    this.lastProcessedVideo = "";
+    this.isGeneratingCommentary = false;
+    this.videoChangeTimeout = null;
 
     this.init();
   }
@@ -26,21 +22,164 @@ class YouTubeRJMode {
   }
 
   setupAudioContext() {
-    try {
-      this.audioContext = new (window.AudioContext ||
-        window.webkitAudioContext)();
+    this.audioContext = AudioUtils.createAudioContext();
+    if (this.audioContext) {
       this.gainNode = this.audioContext.createGain();
-    } catch (error) {
-      console.error("Audio context setup failed:", error);
     }
   }
 
   detectPlaylist() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const isPlaylist = urlParams.has("list");
-
-    if (isPlaylist && !document.getElementById("rj-mode-button")) {
+    // Use YouTube utility function
+    if (
+      YouTubeUtils.isPlaylistPage() &&
+      !document.getElementById("rj-mode-button")
+    ) {
       this.showRJModePrompt();
+    }
+  }
+
+  getCurrentAndNextTitles() {
+    // Use YouTube utility functions
+    this.currentVideoTitle = YouTubeUtils.cleanVideoTitle(
+      YouTubeUtils.getCurrentVideoTitle()
+    );
+    this.nextVideoTitle = YouTubeUtils.cleanVideoTitle(
+      YouTubeUtils.getNextVideoTitle()
+    );
+  }
+
+  async generateAndPlayRJCommentary() {
+    // Prevent multiple simultaneous commentary generations
+    if (this.isGeneratingCommentary || this.isRJPlaying) {
+      console.log("Commentary already in progress, skipping...");
+      return;
+    }
+
+    // Check if we've already processed this video
+    const videoId = YouTubeUtils.extractVideoId() || this.currentVideoTitle;
+    if (videoId === this.lastProcessedVideo) {
+      console.log("Already processed this video, skipping...");
+      return;
+    }
+
+    if (!this.currentVideoTitle || this.currentVideoTitle.trim() === "") {
+      console.log("No current video title found, skipping...");
+      return;
+    }
+
+    this.isGeneratingCommentary = true;
+    this.lastProcessedVideo = videoId;
+
+    try {
+      DomUtils.showLoadingIndicator();
+
+      // Use API utility functions
+      const settings = await APIUtils.getAPISettings();
+      const prompt = APIUtils.generateRJPrompt(
+        this.currentVideoTitle,
+        this.nextVideoTitle,
+        settings.rjStyle,
+        settings.commentaryLength
+      );
+
+      const script = await APIUtils.callGeminiAPI(
+        prompt,
+        settings.geminiApiKey
+      );
+      const audioData = await APIUtils.callMurfAPI(
+        script,
+        settings.murfApiKey,
+        settings.voiceId,
+        settings.voiceStyle
+      );
+
+      // Log the commentary
+      APIUtils.logCommentary(
+        this.currentVideoTitle,
+        this.nextVideoTitle,
+        script
+      );
+
+      // Play the commentary
+      await this.playRJCommentary(audioData.audioBlob);
+
+      DomUtils.hideLoadingIndicator();
+    } catch (error) {
+      console.error("RJ Commentary generation failed:", error);
+      DomUtils.hideLoadingIndicator();
+      DomUtils.showErrorMessage(error.message);
+    } finally {
+      this.isGeneratingCommentary = false;
+    }
+  }
+
+  async playRJCommentary(audioBlob) {
+    if (this.isRJPlaying) {
+      console.log("RJ already playing, skipping...");
+      return;
+    }
+
+    this.isRJPlaying = true;
+
+    try {
+      const video = YouTubeUtils.getVideoElement();
+
+      // Duck the YouTube video volume using utility
+      this.originalVolume = await AudioUtils.duckVolume(video, 0.3);
+
+      // Create and play RJ audio using utility
+      const { audio, audioUrl } = AudioUtils.createAudio(audioBlob);
+
+      audio.addEventListener("ended", () => {
+        this.restoreVolumeAndCleanup(video, audioUrl);
+      });
+
+      audio.addEventListener("error", (error) => {
+        console.error("Audio error:", error);
+        this.restoreVolumeAndCleanup(video, audioUrl);
+      });
+
+      // Play audio
+      await AudioUtils.playAudio(audio).catch((error) => {
+        console.error("Audio playback failed:", error);
+        this.restoreVolumeAndCleanup(video, audioUrl);
+      });
+    } catch (error) {
+      console.error("Error playing RJ commentary:", error);
+      this.isRJPlaying = false;
+      await AudioUtils.restoreVolume(
+        YouTubeUtils.getVideoElement(),
+        this.originalVolume
+      );
+    }
+  }
+
+  async restoreVolumeAndCleanup(video, audioUrl) {
+    // Restore original volume using utility
+    await AudioUtils.restoreVolume(video, this.originalVolume);
+
+    // Clean up audio URL
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+    }
+
+    this.isRJPlaying = false;
+    console.log("RJ commentary cleanup completed");
+  }
+
+  handleVideoChange() {
+    // Use YouTube utility functions
+    const newTitle = YouTubeUtils.getCurrentVideoTitle();
+    const newVideoId = YouTubeUtils.extractVideoId() || newTitle;
+
+    if (
+      newTitle &&
+      newTitle !== this.currentVideoTitle &&
+      newVideoId !== this.lastProcessedVideo
+    ) {
+      console.log("New video detected:", newTitle);
+      this.getCurrentAndNextTitles();
+      this.generateAndPlayRJCommentary();
     }
   }
 
@@ -196,415 +335,28 @@ class YouTubeRJMode {
     // }
   }
 
-  getCurrentAndNextTitles() {
-    // Get current video title
-    const currentTitleElement = document.querySelector(
-      "h1.title.style-scope.ytd-video-primary-info-renderer"
-    );
-    this.currentVideoTitle = currentTitleElement?.textContent?.trim() || "";
-
-    // Get next video title from playlist
-    const nextVideoElement = document
-      .querySelector("#playlist-items[selected]")
-      .nextSibling.querySelector("#video-title");
-
-    this.nextVideoTitle = nextVideoElement?.textContent?.trim() || "";
-  }
-
-  async generateAndPlayRJCommentary() {
-    // Prevent multiple simultaneous commentary generations
-    if (this.isGeneratingCommentary || this.isRJPlaying) {
-      logger.log("Commentary already in progress, skipping...");
-      return;
-    }
-
-    // Check if we've already processed this video
-    const videoId = this.extractVideoId();
-    if (videoId === this.lastProcessedVideo) {
-      logger.log("Already processed this video, skipping...");
-      return;
-    }
-
-    // Ensure we have a current video title
-    if (!this.currentVideoTitle || this.currentVideoTitle.trim() === "") {
-      logger.log("No current video title found, skipping...");
-      return;
-    }
-
-    this.isGeneratingCommentary = true;
-    this.lastProcessedVideo = videoId;
-
-    try {
-      // Show loading indicator
-      this.showLoadingIndicator();
-
-      // Generate script using Gemini API
-      const script = await this.generateRJScript();
-
-      // Convert to speech using Murf.ai
-      const audioBlob = await this.generateTTS(script);
-
-      // Play the commentary
-      await this.playRJCommentary(audioBlob);
-
-      this.hideLoadingIndicator();
-    } catch (error) {
-      console.error("RJ Commentary generation failed:", error);
-      this.hideLoadingIndicator();
-      this.showErrorMessage(error.message);
-    } finally {
-      this.isGeneratingCommentary = false;
-    }
-  }
-
-  extractVideoId() {
-    // Extract video ID from current URL or video element
-    const urlParams = new URLSearchParams(window.location.search);
-    const videoId = urlParams.get("v");
-    if (videoId) return videoId;
-
-    // Fallback: use video title as identifier
-    return this.currentVideoTitle;
-  }
-
-  showLoadingIndicator() {
-    if (document.getElementById("rj-loading")) return;
-
-    const loading = document.createElement("div");
-    loading.id = "rj-loading";
-    loading.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <div class="spinner"></div>
-        <span>🎙️ Preparing RJ commentary...</span>
-      </div>
-    `;
-
-    loading.style.cssText = `
-      position: fixed;
-      top: 140px;
-      right: 20px;
-      z-index: 9999;
-      background: rgba(0, 0, 0, 0.8);
-      color: white;
-      padding: 10px 15px;
-      border-radius: 8px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 14px;
-    `;
-
-    // Add spinner CSS if not exists
-    if (!document.getElementById("spinner-styles")) {
-      const style = document.createElement("style");
-      style.id = "spinner-styles";
-      style.textContent = `
-        .spinner {
-          width: 16px;
-          height: 16px;
-          border: 2px solid #333;
-          border-top: 2px solid #fff;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `;
-      document.head.appendChild(style);
-    }
-
-    document.body.appendChild(loading);
-  }
-
-  hideLoadingIndicator() {
-    const loading = document.getElementById("rj-loading");
-    if (loading) loading.remove();
-  }
-
-  showErrorMessage(message) {
-    const error = document.createElement("div");
-    error.style.cssText = `
-      position: fixed;
-      top: 140px;
-      right: 20px;
-      z-index: 9999;
-      background: #ff4757;
-      color: white;
-      padding: 10px 15px;
-      border-radius: 8px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 14px;
-      max-width: 350px;
-    `;
-    error.textContent = `❌ ${message}`;
-
-    document.body.appendChild(error);
-
-    setTimeout(() => {
-      error.remove();
-    }, 5000);
-  }
-
-  async generateRJScript() {
-    const { geminiApiKey, rjStyle, commentaryLength } =
-      await chrome.storage.sync.get([
-        "geminiApiKey",
-        "rjStyle",
-        "commentaryLength",
-      ]);
-
-    if (!geminiApiKey) {
-      throw new Error(
-        "Gemini API key not configured. Please set it in the extension popup."
-      );
-    }
-
-    const stylePrompts = {
-      energetic:
-        "You are a high-energy radio DJ who's absolutely pumped about music!",
-      chill: "You are a laid-back DJ with a smooth, relaxed vibe.",
-      sarcastic:
-        "You are a witty DJ who adds clever commentary with a touch of sarcasm.",
-      professional: "You are a professional radio host with polished delivery.",
-    };
-
-    const lengthGuides = {
-      short: "Keep it brief and punchy (20-30 seconds when spoken)",
-      medium: "Moderate length with good flow (30-45 seconds when spoken)",
-      long: "More detailed commentary (45-60 seconds when spoken)",
-    };
-
-    const basePrompt = stylePrompts[rjStyle || "energetic"];
-    const lengthGuide = lengthGuides[commentaryLength || "medium"];
-
-    const prompt = `${basePrompt} ${lengthGuide}. 
-    
-Current song: "${this.currentVideoTitle}"
-${this.nextVideoTitle ? `Next up: "${this.nextVideoTitle}"` : ""}
-
-Create engaging commentary that connects with listeners. Be natural, enthusiastic, and add personality. Don't just read the song titles - make it conversational and fun!`;
-
-    try {
-      const response = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-goog-api-key": geminiApiKey,
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: prompt,
-                  },
-                ],
-              },
-            ],
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(
-          `Gemini API error: ${response.status} ${response.statusText}`
-        );
-      }
-
-      const data = await response.json();
-
-      if (
-        !data.candidates ||
-        !data.candidates[0] ||
-        !data.candidates[0].content
-      ) {
-        throw new Error("Invalid response from Gemini API");
-      }
-
-      const script = data.candidates[0].content.parts[0].text;
-
-      // Log the commentary for export feature
-      chrome.runtime.sendMessage({
-        action: "logCommentary",
-        currentSong: this.currentVideoTitle,
-        nextSong: this.nextVideoTitle,
-        script: script,
-      });
-
-      return script;
-    } catch (error) {
-      console.error("Gemini API error:", error);
-      throw new Error(`Failed to generate RJ script: ${error.message}`);
-    }
-  }
-
-  async generateTTS(text) {
-    const { murfApiKey, voiceId, voiceStyle } = await chrome.storage.sync.get([
-      "murfApiKey",
-      "voiceId",
-      "voiceStyle",
-    ]);
-
-    if (!murfApiKey) {
-      throw new Error(
-        "Murf.ai API key not configured. Please set it in the extension popup."
-      );
-    }
-
-    try {
-      const response = await fetch("https://api.murf.ai/v1/speech/generate", {
-        method: "POST",
-        headers: {
-          "api-key": murfApiKey,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text: text,
-          voiceId: voiceId || "en-US-natalie",
-          style: voiceStyle || "Promo",
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          `Murf.ai API error: ${response.status} ${response.statusText} - ${
-            errorData.message || "Unknown error"
-          }`
-        );
-      }
-
-      const data = await response.json();
-
-      if (!data.audioFile) {
-        throw new Error("No audio file returned from Murf.ai API");
-      }
-
-      // Fetch the actual audio file from the returned URL
-      const audioResponse = await fetch(data.audioFile);
-      if (!audioResponse.ok) {
-        throw new Error("Failed to fetch audio file from Murf.ai");
-      }
-
-      // Store audio duration for UI feedback
-      this.lastAudioDuration = data.audioLengthInSeconds;
-
-      // Log remaining character count for user awareness
-      if (data.remainingCharacterCount !== undefined) {
-        logger.log(
-          `Murf.ai characters remaining: ${data.remainingCharacterCount}`
-        );
-      }
-
-      return await audioResponse.blob();
-    } catch (error) {
-      console.error("Murf.ai TTS error:", error);
-      throw new Error(`Failed to generate speech: ${error.message}`);
-    }
-  }
-
-  async playRJCommentary(audioBlob) {
-    // Prevent multiple audio playback
-    if (this.isRJPlaying) {
-      logger.log("RJ already playing, skipping...");
-      return;
-    }
-
-    this.isRJPlaying = true;
-
-    try {
-      // Duck the YouTube video volume
-      await this.duckVolume(0.1); // Reduce to 30%
-
-      // Create and play RJ audio
-      const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
-
-      // Set up audio event listeners
-      audio.addEventListener("loadeddata", () => {
-        logger.log("RJ audio loaded, starting playback...");
-        audio.play().catch((error) => {
-          console.error("Audio playback failed:", error);
-          this.restoreVolumeAndCleanup(audioUrl);
-        });
-      });
-
-      audio.addEventListener("ended", () => {
-        logger.log("RJ audio finished");
-        this.restoreVolumeAndCleanup(audioUrl);
-      });
-
-      audio.addEventListener("error", (error) => {
-        console.error("Audio error:", error);
-        this.restoreVolumeAndCleanup(audioUrl);
-      });
-
-      // Fallback timeout in case audio events don't fire
-      setTimeout(() => {
-        if (this.isRJPlaying) {
-          logger.log("RJ audio timeout, cleaning up...");
-          this.restoreVolumeAndCleanup(audioUrl);
-        }
-      }, 60000); // 60 second maximum
-    } catch (error) {
-      console.error("Error playing RJ commentary:", error);
-      this.isRJPlaying = false;
-      await this.restoreVolume();
-    }
-  }
-
-  async restoreVolumeAndCleanup(audioUrl) {
-    // Restore original volume
-    await this.restoreVolume();
-
-    // Clean up audio URL
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
-    }
-
-    // Reset playing state
+  stopRJMode() {
+    this.isRJModeActive = false;
     this.isRJPlaying = false;
-    logger.log("RJ commentary cleanup completed");
-  }
+    this.isGeneratingCommentary = false;
+    this.lastProcessedVideo = "";
 
-  async duckVolume(targetLevel) {
-    const video = document.querySelector("video");
-    if (video) {
-      this.originalVolume = video.volume;
-
-      // Smooth volume transition
-      const steps = 20;
-      const volumeStep = (this.originalVolume - targetLevel) / steps;
-      const timeStep = 200; // 200ms total transition
-
-      for (let i = 0; i < steps; i++) {
-        setTimeout(() => {
-          video.volume = Math.max(
-            0,
-            this.originalVolume - volumeStep * (i + 1)
-          );
-        }, (timeStep / steps) * i);
-      }
+    // Clear any pending timeouts and intervals
+    if (this.videoChangeTimeout) {
+      clearTimeout(this.videoChangeTimeout);
+      this.videoChangeTimeout = null;
     }
-  }
 
-  async restoreVolume() {
-    const video = document.querySelector("video");
-    if (video) {
-      // Smooth volume restoration
-      const steps = 20;
-      const currentVolume = video.volume;
-      const volumeStep = (this.originalVolume - currentVolume) / steps;
-      const timeStep = 300;
-
-      for (let i = 0; i < steps; i++) {
-        setTimeout(() => {
-          video.volume = Math.min(1, currentVolume + volumeStep * (i + 1));
-        }, (timeStep / steps) * i);
-      }
+    // Clear all intervals (including progress monitoring)
+    const maxIntervalId = setInterval(() => {}, 0);
+    for (let i = 1; i <= maxIntervalId; i++) {
+      clearInterval(i);
     }
+
+    // Clean up any loading indicators
+    DomUtils.hideLoadingIndicator();
+
+    logger.log("RJ Mode stopped and cleaned up");
   }
 
   setupVideoEventListeners() {
@@ -698,48 +450,7 @@ Create engaging commentary that connects with listeners. Be natural, enthusiasti
     urlObserver.observe(document, { subtree: true, childList: true });
   }
 
-  handleVideoChange() {
-    // Get current video info
-    const newTitle = document
-      .querySelector("h1.title.style-scope.ytd-video-primary-info-renderer")
-      ?.textContent?.trim();
-    const newVideoId = this.extractVideoId();
 
-    // Only proceed if we have a new video
-    if (
-      newTitle &&
-      newTitle !== this.currentVideoTitle &&
-      newVideoId !== this.lastProcessedVideo
-    ) {
-      logger.log("New video detected:", newTitle);
-      this.getCurrentAndNextTitles();
-      this.generateAndPlayRJCommentary();
-    }
-  }
-
-  stopRJMode() {
-    this.isRJModeActive = false;
-    this.isRJPlaying = false;
-    this.isGeneratingCommentary = false;
-    this.lastProcessedVideo = "";
-
-    // Clear any pending timeouts and intervals
-    if (this.videoChangeTimeout) {
-      clearTimeout(this.videoChangeTimeout);
-      this.videoChangeTimeout = null;
-    }
-
-    // Clear all intervals (including progress monitoring)
-    const maxIntervalId = setInterval(() => {}, 0);
-    for (let i = 1; i <= maxIntervalId; i++) {
-      clearInterval(i);
-    }
-
-    // Clean up any loading indicators
-    this.hideLoadingIndicator();
-
-    logger.log("RJ Mode stopped and cleaned up");
-  }
 }
 
 // Initialize when page loads
@@ -750,17 +461,3 @@ if (document.readyState === "loading") {
 } else {
   new YouTubeRJMode();
 }
-
-// Handle navigation in YouTube SPA
-let lastUrl = location.href;
-new MutationObserver(() => {
-  const url = location.href;
-  if (url !== lastUrl) {
-    lastUrl = url;
-    setTimeout(() => {
-      if (url.includes("youtube.com") && url.includes("list=")) {
-        new YouTubeRJMode();
-      }
-    }, 1000);
-  }
-}).observe(document, { subtree: true, childList: true });
