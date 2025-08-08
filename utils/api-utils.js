@@ -47,7 +47,9 @@ ${includeHistory ? "Here's some of your previous commentary: \n" + scriptHistory
 Current song: "${currentSong}"
 ${nextSong ? `Next up: "${nextSong}"` : ""}
 
-Create engaging commentary that connects with listeners. Be natural, enthusiastic, and add personality. Don't just read the song titles - make it conversational and fun!`;
+Randomly talk about something related to the current song or artist.
+
+Create engaging commentary that connects with listeners. Be natural, enthusiastic, and add personality. Don't read the song titles - make it conversational and fun!`;
   },
 
   // Call Gemini API with error handling
