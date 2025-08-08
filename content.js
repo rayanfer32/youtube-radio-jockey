@@ -11,6 +11,7 @@ class YouTubeRJMode {
     this.isGeneratingCommentary = false;
     this.videoChangeTimeout = null;
     this.progressInterval = null;
+    this.scriptHistory = [];
 
     this.init();
   }
@@ -18,7 +19,7 @@ class YouTubeRJMode {
   init() {
     this.setupAudioContext();
     this.detectPlaylist();
-    this.setupVideoEventListeners();
+    // this.setupVideoEventListeners();
     DomUtils.createRJModeButton(this.toggleRJMode.bind(this));
   }
 
@@ -80,13 +81,20 @@ class YouTubeRJMode {
         this.currentVideoTitle,
         this.nextVideoTitle,
         settings.rjStyle,
-        settings.commentaryLength
+        settings.commentaryLength,
+        settings.includeHistory,
+        this.scriptHistory.join("\n")
       );
+
+      console.log('Generated prompt:', prompt);
 
       const script = await APIUtils.callGeminiAPI(
         prompt,
         settings.geminiApiKey
       );
+
+      this.scriptHistory.push(script)
+
       const audioData = await APIUtils.callMurfAPI(
         script,
         settings.murfApiKey,
@@ -168,23 +176,6 @@ class YouTubeRJMode {
     console.log("RJ commentary cleanup completed");
   }
 
-  // ! disable this method for now
-  handleVideoChange() {
-    // Use YouTube utility functions
-    const newTitle = YouTubeUtils.getCurrentVideoTitle();
-    const newVideoId = YouTubeUtils.extractVideoId() || newTitle;
-
-    if (
-      newTitle &&
-      newTitle !== this.currentVideoTitle &&
-      newVideoId !== this.lastProcessedVideo
-    ) {
-      console.log("New video detected:", newTitle);
-      // this.getCurrentAndNextTitles();
-      // this.generateAndPlayRJCommentary();
-    }
-  }
-
   async toggleRJMode() {
     this.isRJModeActive = !this.isRJModeActive;
     const button = document.getElementById("rj-mode-button");
@@ -202,6 +193,7 @@ class YouTubeRJMode {
 
   async startRJMode() {
     this.getCurrentAndNextTitles();
+    this.setupVideoEventListeners();
 
     // ! video progress listener will take care of this
     // if (this.currentVideoTitle) {
@@ -234,6 +226,7 @@ class YouTubeRJMode {
 
     // Monitor video progress
     const checkVideoProgress = () => {
+      console.log("checkVideoProgress called");
       const video = document.querySelector("video");
       if (!video || !this.isRJModeActive) return;
 
@@ -259,33 +252,6 @@ class YouTubeRJMode {
     };
 
     // Clear progress monitoring
-    const clearProgressMonitoring = () => {
-      if (this.progressInterval) {
-        clearInterval(this.progressInterval);
-        this.progressInterval = null;
-      }
-    };
-
-    // Video change detection with debouncing
-    const observer = new MutationObserver(() => {
-      if (!this.isRJModeActive) return;
-
-      // Clear existing timeout and monitoring
-      if (this.videoChangeTimeout) {
-        clearTimeout(this.videoChangeTimeout);
-      }
-      clearProgressMonitoring();
-
-      // Debounce video changes
-      this.videoChangeTimeout = setTimeout(() => {
-        setupProgressMonitoring();
-      }, 3000);
-    });
-
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
 
     // Start monitoring when RJ mode is active
     if (this.isRJModeActive) {

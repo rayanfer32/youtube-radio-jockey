@@ -9,6 +9,7 @@ const APIUtils = {
       "commentaryLength",
       "voiceId",
       "voiceStyle",
+      "includeHistory"
     ]);
   },
 
@@ -17,7 +18,9 @@ const APIUtils = {
     currentSong,
     nextSong,
     style = "energetic",
-    length = "medium"
+    length = "medium",
+    includeHistory = false,
+    scriptHistory
   ) {
     const stylePrompts = {
       energetic:
@@ -38,6 +41,8 @@ const APIUtils = {
     const lengthGuide = lengthGuides[length] || lengthGuides.medium;
 
     return `${basePrompt} ${lengthGuide}. 
+
+${includeHistory ? "Here's some of your previous commentary: \n" + scriptHistory : ""}
     
 Current song: "${currentSong}"
 ${nextSong ? `Next up: "${nextSong}"` : ""}
@@ -94,6 +99,7 @@ Create engaging commentary that connects with listeners. Be natural, enthusiasti
 
   // Call Murf.ai API with error handling
   async callMurfAPI(text, apiKey, voiceId = "en-US-natalie", style = "Promo") {
+    
     if (!apiKey) {
       throw new Error("Murf.ai API key not configured");
     }
