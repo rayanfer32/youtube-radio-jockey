@@ -10,6 +10,7 @@ class YouTubeRJMode {
     this.lastProcessedVideo = "";
     this.isGeneratingCommentary = false;
     this.videoChangeTimeout = null;
+    this.progressInterval = null;
 
     this.init();
   }
@@ -125,7 +126,7 @@ class YouTubeRJMode {
       const video = YouTubeUtils.getVideoElement();
 
       // Duck the YouTube video volume using utility
-      this.originalVolume = await AudioUtils.duckVolume(video, 0.3);
+      this.originalVolume = await AudioUtils.duckVolume(video, 0.1);
 
       // Create and play RJ audio using utility
       const { audio, audioUrl } = AudioUtils.createAudio(audioBlob);
@@ -167,6 +168,7 @@ class YouTubeRJMode {
     console.log("RJ commentary cleanup completed");
   }
 
+  // ! disable this method for now
   handleVideoChange() {
     // Use YouTube utility functions
     const newTitle = YouTubeUtils.getCurrentVideoTitle();
@@ -178,8 +180,8 @@ class YouTubeRJMode {
       newVideoId !== this.lastProcessedVideo
     ) {
       console.log("New video detected:", newTitle);
-      this.getCurrentAndNextTitles();
-      this.generateAndPlayRJCommentary();
+      // this.getCurrentAndNextTitles();
+      // this.generateAndPlayRJCommentary();
     }
   }
 
@@ -219,11 +221,7 @@ class YouTubeRJMode {
       this.videoChangeTimeout = null;
     }
 
-    // Clear all intervals (including progress monitoring)
-    const maxIntervalId = setInterval(() => {}, 0);
-    for (let i = 1; i <= maxIntervalId; i++) {
-      clearInterval(i);
-    }
+    clearInterval(this.progressInterval);
 
     // Clean up any loading indicators
     DomUtils.hideLoadingIndicator();
@@ -233,7 +231,6 @@ class YouTubeRJMode {
 
   setupVideoEventListeners() {
     // Progress check interval
-    let progressInterval = null;
 
     // Monitor video progress
     const checkVideoProgress = () => {
@@ -255,17 +252,17 @@ class YouTubeRJMode {
 
     // Set up video progress monitoring
     const setupProgressMonitoring = () => {
-      if (progressInterval) {
-        clearInterval(progressInterval);
+      if (this.progressInterval) {
+        clearInterval(this.progressInterval);
       }
-      progressInterval = setInterval(checkVideoProgress, 1000);
+      this.progressInterval = setInterval(checkVideoProgress, 1000);
     };
 
     // Clear progress monitoring
     const clearProgressMonitoring = () => {
-      if (progressInterval) {
-        clearInterval(progressInterval);
-        progressInterval = null;
+      if (this.progressInterval) {
+        clearInterval(this.progressInterval);
+        this.progressInterval = null;
       }
     };
 
@@ -294,40 +291,18 @@ class YouTubeRJMode {
     if (this.isRJModeActive) {
       setupProgressMonitoring();
     }
-
-    // Also listen for URL changes (YouTube SPA navigation)
-    let lastUrl = location.href;
-    const urlObserver = new MutationObserver(() => {
-      const url = location.href;
-      if (url !== lastUrl) {
-        lastUrl = url;
-
-        // Clear timeout and reset state on URL change
-        if (this.videoChangeTimeout) {
-          clearTimeout(this.videoChangeTimeout);
-        }
-
-        setTimeout(() => {
-          if (
-            this.isRJModeActive &&
-            !this.isRJPlaying &&
-            !this.isGeneratingCommentary
-          ) {
-            this.handleVideoChange();
-          }
-        }, 2000);
-      }
-    });
-
-    urlObserver.observe(document, { subtree: true, childList: true });
   }
 }
 
 // Initialize when page loads
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
-    window.youtubeRJ = new YouTubeRJMode();
+    const youtubeRJ = new YouTubeRJMode();
+    window.youtubeRJ = youtubeRJ;
+    console.log(youtubeRJ);
   });
 } else {
-  window.youtubeRJ = new YouTubeRJMode();
+  const youtubeRJ = new YouTubeRJMode();
+  window.youtubeRJ = youtubeRJ;
+  console.log(youtubeRJ);
 }
