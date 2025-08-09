@@ -13,6 +13,21 @@ const YouTubeUtils = {
     return titleElement?.textContent?.trim() || "";
   },
 
+  getDescription() {
+    return (
+      document.querySelector("#description-inner").textContent?.trim() || ""
+    );
+  },
+
+  getComments() {
+    let allComments = [];
+    document.querySelectorAll("#comment-container").forEach((item) => {
+      let txt = item.querySelector("#expander").textContent.trim();
+      allComments.push(txt);
+    });
+    return allComments;
+  },
+
   getNextVideoTitle() {
     const nextVideoElement = document
       .querySelector("#playlist-items[selected]")

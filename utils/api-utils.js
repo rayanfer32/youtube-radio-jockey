@@ -9,7 +9,8 @@ const APIUtils = {
       "commentaryLength",
       "voiceId",
       "voiceStyle",
-      "includeHistory"
+      "includeHistory",
+      "includeComments",
     ]);
   },
 
@@ -19,8 +20,8 @@ const APIUtils = {
     nextSong,
     style = "energetic",
     length = "medium",
-    includeHistory = false,
-    scriptHistory
+    scriptHistory,
+    comments
   ) {
     const stylePrompts = {
       energetic:
@@ -42,13 +43,14 @@ const APIUtils = {
 
     return `${basePrompt} ${lengthGuide}. 
 
-${includeHistory ? "Here's some of your previous commentary: \n" + scriptHistory : ""}
-    
+${scriptHistory && "Here's some of your previous commentary: \n" + scriptHistory}
+${comments && "Here are some comments from viewers: \n" + comments}
+
 Current song: "${currentSong}"
 ${nextSong ? `Next up: "${nextSong}"` : ""}
 
 Randomly talk about something related to the current song or artist.
-
+Avoid saying Alright party folks or similar phrases. Cookup some new intros
 Create engaging commentary that connects with listeners. Be natural, enthusiastic, and add personality. Don't read the song titles - make it conversational and fun!`;
   },
 
@@ -101,7 +103,6 @@ Create engaging commentary that connects with listeners. Be natural, enthusiasti
 
   // Call Murf.ai API with error handling
   async callMurfAPI(text, apiKey, voiceId = "en-US-natalie", style = "Promo") {
-    
     if (!apiKey) {
       throw new Error("Murf.ai API key not configured");
     }

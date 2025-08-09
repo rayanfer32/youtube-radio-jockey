@@ -82,18 +82,20 @@ class YouTubeRJMode {
         this.nextVideoTitle,
         settings.rjStyle,
         settings.commentaryLength,
-        settings.includeHistory,
-        this.scriptHistory.join("\n")
+        settings.includeHistory ? this.scriptHistory.join("\n") : "",
+        settings.includeComments ? YouTubeUtils.getComments().join("\n") : ""
       );
 
-      console.log('Generated prompt:', prompt);
+      console.log("Generated prompt:", prompt);
 
       const script = await APIUtils.callGeminiAPI(
         prompt,
         settings.geminiApiKey
       );
 
-      this.scriptHistory.push(script)
+      console.log("Generated script:", script);
+
+      this.scriptHistory.push(script);
 
       const audioData = await APIUtils.callMurfAPI(
         script,

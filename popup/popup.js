@@ -21,8 +21,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("duckingValue").textContent =
       settings.volumeDucking + "%";
   }
-  if (settings.darkMode)
-    document.getElementById("darkMode").checked = settings.darkMode;
+  if (settings.includeHistory)
+    document.getElementById("includeHistory").checked = settings.includeHistory;
+  if (settings.includeComments)
+    document.getElementById("includeComments").checked =
+      settings.includeComments;
+
   if (settings.autoStart)
     document.getElementById("autoStart").checked = settings.autoStart;
 
@@ -44,6 +48,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         voiceStyle: document.getElementById("voiceStyle").value,
         volumeDucking: document.getElementById("volumeDucking").value,
         includeHistory: document.getElementById("includeHistory").checked,
+        includeComments: document.getElementById("includeComments").checked,
         autoStart: document.getElementById("autoStart").checked,
       };
 
@@ -79,6 +84,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       showStatus("Error exporting logs: " + error.message, "error");
     }
   });
+
+  // setup click event listeners
+  document
+    .querySelector("#apiKeysCollapse")
+    .addEventListener("click", function () {
+      let apiKeysContent = document.getElementById("apiKeysContent");
+
+      apiKeysContent.style.display =
+        apiKeysContent.style.display === "none" ? "block" : "none";
+    });
 });
 
 function showStatus(message, type) {
