@@ -4,11 +4,17 @@
 
   https://aistudio.google.com/apikey (required)
 
-  https://murf.ai/api/api-keys (optional , try free api)
+  https://murf.ai/api/api-keys (optional , try free api) (fallbacks to edge-tts otherwise)
 
 - Youtube Playlist
 
   https://www.youtube.com/watch?v=LjhCEhWiKXk&list=RDJGwWNGJdvx8&index=28
+
+### Installation
+
+Download and extract this zip file to a folder , then go to extensions > enable developer mode > load unpacked and choose the folder
+
+- https://github.com/rayanfer32/youtube-radio-jockey/archive/refs/heads/main.zip
 
 ### Good Edge TTS voices:
 
