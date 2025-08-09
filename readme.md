@@ -1,5 +1,7 @@
 ### Youtube Radio Jockey Chrome extension
 
+![Youtube RJ extension running on youtube](demo.png)
+
 - You will need
 
   https://aistudio.google.com/apikey (required)
