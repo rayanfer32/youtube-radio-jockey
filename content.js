@@ -18,11 +18,24 @@ class YouTubeRJMode {
     this.init();
   }
 
-  init() {
+  async init() {
+    await this.promptUserForAPIKeys();
     this.setupAudioContext();
     this.detectPlaylist();
     // this.setupVideoEventListeners();
     DomUtils.createRJModeButton(this.toggleRJMode.bind(this));
+  }
+
+  async promptUserForAPIKeys() {
+    let settings = await APIUtils.getAPISettings();
+    if (!settings.geminiApiKey) {
+      let geminiApiKey = prompt("Enter your Gemini API Key:");
+      if (geminiApiKey) {
+        chrome.storage.sync.set({ geminiApiKey });
+      } else {
+        alert("Get free API key from https://aistudio.google.com/apikey");
+      }
+    }
   }
 
   setupAudioContext() {
@@ -111,7 +124,10 @@ class YouTubeRJMode {
         );
       } else {
         // If Murf API is not available or we want to fallback to Edge TTS
-        await this.edgeTTS.synthesize(script, settings.voiceId);
+        await this.edgeTTS.synthesize(
+          script,
+          settings.voiceId || this.ttsVoice
+        );
         audioData = {
           audioBlob: this.edgeTTS.toBlob(),
           // audioUrl: URL.createObjectURL(this.edgeTTS.toBlob()),
