@@ -49,9 +49,10 @@ ${comments && "Here are some comments from viewers: \n" + comments}
 Current song: "${currentSong}"
 ${nextSong ? `Next up: "${nextSong}"` : ""}
 
-Randomly talk about something related to the current song or artist.
-Avoid saying Alright party folks or similar phrases. Cookup some new intros
-Create engaging commentary that connects with listeners. Be natural, enthusiastic, and add personality. Don't read the song titles - make it conversational and fun!`;
+DONOT have special characters that are not detected by TTS in the commentary, your output will be used to generate audio.
+DONOT Alright and Okay okay or similar phrases at the begining. Cook up some new intros
+RANDOMLY talk about something related to the current song or artist.
+CREATE engaging commentary that connects with listeners. Be natural, enthusiastic, and add personality. Don't read the song titles - make it conversational and fun!`;
   },
 
   // Call Gemini API with error handling

@@ -12,6 +12,8 @@ class YouTubeRJMode {
     this.videoChangeTimeout = null;
     this.progressInterval = null;
     this.scriptHistory = [];
+    this.edgeTTS = new EdgeTTS(); // Initialize Edge TTS instance
+    this.ttsVoice = "en-US-AriaNeural"; // Default TTS voice
 
     this.init();
   }
@@ -97,12 +99,24 @@ class YouTubeRJMode {
 
       this.scriptHistory.push(script);
 
-      const audioData = await APIUtils.callMurfAPI(
-        script,
-        settings.murfApiKey,
-        settings.voiceId,
-        settings.voiceStyle
-      );
+      let audioData = {};
+      if (settings.murfApiKey) {
+        // Use Murf API if available
+        // audioData contains the audio blob and other metadata
+        audioData = await APIUtils.callMurfAPI(
+          script,
+          settings.murfApiKey,
+          settings.voiceId,
+          settings.voiceStyle
+        );
+      } else {
+        // If Murf API is not available or we want to fallback to Edge TTS
+        await this.edgeTTS.synthesize(script, settings.voiceId);
+        audioData = {
+          audioBlob: this.edgeTTS.toBlob(),
+          // audioUrl: URL.createObjectURL(this.edgeTTS.toBlob()),
+        };
+      }
 
       // Log the commentary
       APIUtils.logCommentary(

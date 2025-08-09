@@ -20,6 +20,7 @@
     {
       "matches": ["https://www.youtube.com/*"],
       "js": [
+        "lib/edge-tts-web.js",
         "utils/dom-utils.js",
         "utils/youtube-utils.js",
         "utils/audio-utils.js", 
