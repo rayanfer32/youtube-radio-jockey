@@ -1,5 +1,13 @@
 ### Youtube Radio Jockey Chrome extension
 
+### Todo list
+* generate the scirpt and audio earlier
+* add option to sttart rj commentry at start or end
+* option to include lyrics of the song for more context
+* provide more persona to rj like her name , radio name , etc
+
+
+
 ![Youtube RJ extension running on youtube](demo.png)
 
 - You will need

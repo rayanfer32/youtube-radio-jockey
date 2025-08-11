@@ -13,7 +13,7 @@ class YouTubeRJMode {
     this.progressInterval = null;
     this.scriptHistory = [];
     this.edgeTTS = new EdgeTTS(); // Initialize Edge TTS instance
-    this.ttsVoice = "en-US-AriaNeural"; // Default TTS voice
+    this.ttsVoice =  "en-US-AvaMultilingualNeural" // "en-US-AriaNeural"; // Default TTS voice
 
     this.init();
   }
