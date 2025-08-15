@@ -1,4 +1,26 @@
+import APIUtils from "./utils/api-utils";
+import AudioUtils from "./utils/audio-utils";
+import DomUtils from "./utils/dom-utils";
+import YouTubeUtils from "./utils/youtube-utils";
+import { EdgeTTS } from "./utils/edge-tts-web";
+
 class YouTubeRJMode {
+  isRJModeActive: boolean;
+  currentVideoTitle: string;
+  nextVideoTitle: string;
+  originalVolume: number;
+  isRJPlaying: boolean;
+  audioContext: AudioContext | null;
+  gainNode: GainNode | null;
+  lastProcessedVideo: string;
+  isGeneratingCommentary: boolean;
+  videoChangeTimeout: any;
+  progressInterval: any;
+  scriptHistory: any[];
+  edgeTTS: EdgeTTS;
+  ttsVoice: string;
+  generatedAudioData: any;
+
   constructor() {
     this.isRJModeActive = false;
     this.currentVideoTitle = "";
@@ -152,7 +174,7 @@ class YouTubeRJMode {
       this.generatedAudioData = audioData; // Store generated audio data for later use
 
       DomUtils.hideLoadingIndicator();
-    } catch (error) {
+    } catch (error: any) {
       console.error("RJ Commentary generation failed:", error);
       DomUtils.hideLoadingIndicator();
       DomUtils.showErrorMessage(error.message);
@@ -176,8 +198,13 @@ class YouTubeRJMode {
 
     this.isRJPlaying = true;
 
+    const video = YouTubeUtils.getVideoElement();
     try {
-      const video = YouTubeUtils.getVideoElement();
+      if (!video) {
+        console.error("No video element found on the page.");
+        this.isRJPlaying = false;
+        return;
+      }
 
       // Duck the YouTube video volume using utility
       this.originalVolume = await AudioUtils.duckVolume(video, 0.1);
@@ -202,16 +229,17 @@ class YouTubeRJMode {
     } catch (error) {
       console.error("Error playing RJ commentary:", error);
       this.isRJPlaying = false;
-      await AudioUtils.restoreVolume(
-        YouTubeUtils.getVideoElement(),
-        this.originalVolume
-      );
+
+      // Restore original volume
+      if (video) {
+        await AudioUtils.restoreVolume(video, this.originalVolume);
+      }
     } finally {
       this.generatedAudioData = null; // Clear audio data after playback
     }
   }
 
-  async restoreVolumeAndCleanup(video, audioUrl) {
+  async restoreVolumeAndCleanup(video: HTMLVideoElement, audioUrl: string) {
     // Restore original volume using utility
     await AudioUtils.restoreVolume(video, this.originalVolume);
 
@@ -227,6 +255,10 @@ class YouTubeRJMode {
   async toggleRJMode() {
     this.isRJModeActive = !this.isRJModeActive;
     const button = document.getElementById("rj-mode-button");
+    if (!button) {
+      console.error("RJ Mode button not found.");
+      return;
+    }
 
     if (this.isRJModeActive) {
       button.innerHTML = "🎙️ Stop RJ Mode";
@@ -316,11 +348,11 @@ class YouTubeRJMode {
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
     const youtubeRJ = new YouTubeRJMode();
-    window.youtubeRJ = youtubeRJ;
+    (window as any).youtubeRJ = youtubeRJ;
     console.log(youtubeRJ);
   });
 } else {
   const youtubeRJ = new YouTubeRJMode();
-  window.youtubeRJ = youtubeRJ;
+  (window as any).youtubeRJ = youtubeRJ;
   console.log(youtubeRJ);
 }

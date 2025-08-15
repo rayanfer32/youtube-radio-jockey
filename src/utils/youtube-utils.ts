@@ -15,23 +15,25 @@ const YouTubeUtils = {
 
   getDescription() {
     return (
-      document.querySelector("#description-inner").textContent?.trim() || ""
+      document?.querySelector("#description-inner")?.textContent?.trim() || ""
     );
   },
 
   getComments() {
-    let allComments = [];
+    let allComments: string[] = [];
     document.querySelectorAll("#comment-container").forEach((item) => {
-      let txt = item.querySelector("#expander").textContent.trim();
+      let txt = item.querySelector("#expander")?.textContent?.trim() || "";
       allComments.push(txt);
     });
     return allComments;
   },
 
   getNextVideoTitle() {
-    const nextVideoElement = document
-      .querySelector("#playlist-items[selected]")
-      .nextSibling.querySelector("#video-title");
+    const playlistItem = document.querySelector("#playlist-items[selected]");
+    const nextVideoElement = (
+      playlistItem?.nextSibling as Element
+    )?.querySelector("#video-title");
+
     return nextVideoElement?.textContent?.trim() || "";
   },
 
@@ -50,7 +52,7 @@ const YouTubeUtils = {
   },
 
   // Clean up YouTube video titles (remove common suffixes)
-  cleanVideoTitle(title) {
+  cleanVideoTitle(title: string) {
     return title
       .replace(/\(Official.*?\)/gi, "")
       .replace(/\(Music Video\)/gi, "")
@@ -73,4 +75,5 @@ const YouTubeUtils = {
 };
 
 // Make it globally available
-window.YouTubeUtils = YouTubeUtils;
+(window as any).YouTubeUtils = YouTubeUtils;
+export default YouTubeUtils;

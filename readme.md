@@ -1,13 +1,16 @@
 ### Youtube Radio Jockey Chrome extension
 
 ### Todo list
-* generate the scirpt and audio earlier
-* add option to start rj commentry at start or end
 
+- Add option to start rj commentry at start or end
+- Add Instant commentary button
 
 ### Features
-* provide more persona to rj like her name , radio name , etc
-* include lyrics of the song for more context
+
+- Generate and keep the script and commentary audio ready earlier , soon as 10 seconds of video playback
+- Typescirpt codebase
+- Provide more persona to rj like her name , radio name , etc
+- Include lyrics of the song for more context
 
 ![Youtube RJ extension running on youtube](demo.png)
 
@@ -23,9 +26,21 @@
 
 ### Installation
 
-Download and extract this zip file to a folder , then go to extensions > enable developer mode > load unpacked and choose the folder
+Download and extract this zip file to a folder , then go to extensions > enable developer mode > load unpacked and choose the folder > chose the /dist folder
 
 - https://github.com/rayanfer32/youtube-radio-jockey/archive/refs/heads/main.zip
+
+### Development
+
+```sh
+git clone https://github.com/rayanfer32/youtube-radio-jockey
+
+bun install
+
+bun dev
+
+bun run build # production
+```
 
 ### Good Edge TTS voices:
 
