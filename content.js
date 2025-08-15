@@ -13,7 +13,8 @@ class YouTubeRJMode {
     this.progressInterval = null;
     this.scriptHistory = [];
     this.edgeTTS = new EdgeTTS(); // Initialize Edge TTS instance
-    this.ttsVoice =  "en-US-AvaMultilingualNeural" // "en-US-AriaNeural"; // Default TTS voice
+    this.ttsVoice = "en-US-AvaMultilingualNeural"; // "en-US-AriaNeural"; // Default TTS voice
+    this.generatedAudioData = null; // Store generated audio data
 
     this.init();
   }
@@ -65,7 +66,7 @@ class YouTubeRJMode {
     );
   }
 
-  async generateAndPlayRJCommentary() {
+  async generateRJCommentary() {
     // Prevent multiple simultaneous commentary generations
     if (this.isGeneratingCommentary || this.isRJPlaying) {
       console.log("Commentary already in progress, skipping...");
@@ -90,6 +91,10 @@ class YouTubeRJMode {
     try {
       DomUtils.showLoadingIndicator();
 
+      const currentSonglyrics = await APIUtils.callLyricsAPI(
+        this.currentVideoTitle
+      );
+
       // Use API utility functions
       const settings = await APIUtils.getAPISettings();
       const prompt = APIUtils.generateRJPrompt(
@@ -98,7 +103,10 @@ class YouTubeRJMode {
         settings.rjStyle,
         settings.commentaryLength,
         settings.includeHistory ? this.scriptHistory.join("\n") : "",
-        settings.includeComments ? YouTubeUtils.getComments().join("\n") : ""
+        settings.includeComments ? YouTubeUtils.getComments().join("\n") : "",
+        currentSonglyrics,
+        settings.hostName,
+        settings.radioStation
       );
 
       console.log("Generated prompt:", prompt);
@@ -141,8 +149,7 @@ class YouTubeRJMode {
         script
       );
 
-      // Play the commentary
-      await this.playRJCommentary(audioData.audioBlob);
+      this.generatedAudioData = audioData; // Store generated audio data for later use
 
       DomUtils.hideLoadingIndicator();
     } catch (error) {
@@ -154,7 +161,14 @@ class YouTubeRJMode {
     }
   }
 
-  async playRJCommentary(audioBlob) {
+  async playRJCommentary() {
+    const audioBlob = this.generatedAudioData?.audioBlob;
+
+    if (!audioBlob) {
+      console.error("No audio data available to play.");
+      return;
+    }
+
     if (this.isRJPlaying) {
       console.log("RJ already playing, skipping...");
       return;
@@ -192,6 +206,8 @@ class YouTubeRJMode {
         YouTubeUtils.getVideoElement(),
         this.originalVolume
       );
+    } finally {
+      this.generatedAudioData = null; // Clear audio data after playback
     }
   }
 
@@ -226,11 +242,6 @@ class YouTubeRJMode {
   async startRJMode() {
     this.getCurrentAndNextTitles();
     this.setupVideoEventListeners();
-
-    // ! video progress listener will take care of this
-    // if (this.currentVideoTitle) {
-    //   await this.generateAndPlayRJCommentary();
-    // }
   }
 
   stopRJMode() {
@@ -264,14 +275,23 @@ class YouTubeRJMode {
 
       const timeRemaining = video.duration - video.currentTime;
 
+      // generate commentary and keep it ready 10 seconds afer video starts
+      if (
+        video.currentTime > 10 &&
+        !this.isGeneratingCommentary &&
+        !this.generatedAudioData
+      ) {
+        this.getCurrentAndNextTitles();
+        this.generateRJCommentary();
+      }
+
       // Start commentary when 30 seconds remain and not already playing
       if (
         timeRemaining <= 30 &&
         !this.isRJPlaying &&
         !this.isGeneratingCommentary
       ) {
-        this.getCurrentAndNextTitles();
-        this.generateAndPlayRJCommentary();
+        this.playRJCommentary();
       }
     };
 

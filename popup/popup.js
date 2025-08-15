@@ -1,34 +1,46 @@
+// util functions
+function setDomValue(id, value) {
+  const element = document.getElementById(id);
+  if (element) {
+    if (element.type === "checkbox") {
+      element.checked = value;
+    } else {
+      element.value = value;
+    }
+  }
+}
+
+function getDomValue(id) {
+  const element = document.getElementById(id);
+  if (element) {
+    if (element.type === "checkbox") {
+      return element.checked;
+    } else {
+      return element.value;
+    }
+  }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   // Load saved settings
-  const settings = await chrome.storage.sync.get();
+  const settings = await chrome.storage.sync.get({
+    geminiApiKey: "",
+    murfApiKey: "",
+    rjStyle: "sarcastic",
+    commentaryLength: "short",
+    voiceId: "en-US-AvaMultilingualNeural",
+    voiceStyle: "default",
+    includeHistory: false,
+    includeComments: false,
+    volumeDucking: 50, // Default value for volume ducking
+    hostName: "Alexis",
+    radioStation: "97.7 Youtube FM",
+  });
 
-  // Populate form with saved values
-  if (settings.geminiApiKey)
-    document.getElementById("geminiApiKey").value = settings.geminiApiKey;
-  if (settings.murfApiKey)
-    document.getElementById("murfApiKey").value = settings.murfApiKey;
-  if (settings.commentaryLength)
-    document.getElementById("commentaryLength").value =
-      settings.commentaryLength;
-  if (settings.rjStyle)
-    document.getElementById("rjStyle").value = settings.rjStyle;
-  if (settings.voiceId)
-    document.getElementById("voiceId").value = settings.voiceId;
-  if (settings.voiceStyle)
-    document.getElementById("voiceStyle").value = settings.voiceStyle;
-  if (settings.volumeDucking) {
-    document.getElementById("volumeDucking").value = settings.volumeDucking;
-    document.getElementById("duckingValue").textContent =
-      settings.volumeDucking + "%";
-  }
-  if (settings.includeHistory)
-    document.getElementById("includeHistory").checked = settings.includeHistory;
-  if (settings.includeComments)
-    document.getElementById("includeComments").checked =
-      settings.includeComments;
-
-  if (settings.autoStart)
-    document.getElementById("autoStart").checked = settings.autoStart;
+  // Set values for each setting
+  Object.keys(settings).forEach((key) => {
+    setDomValue(key, settings[key]);
+  });
 
   // Volume ducking slider update
   document.getElementById("volumeDucking").addEventListener("input", (e) => {
@@ -39,21 +51,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   document
     .getElementById("saveSettings")
     .addEventListener("click", async () => {
-      const settings = {
-        geminiApiKey: document.getElementById("geminiApiKey").value,
-        murfApiKey: document.getElementById("murfApiKey").value,
-        commentaryLength: document.getElementById("commentaryLength").value,
-        rjStyle: document.getElementById("rjStyle").value,
-        voiceId: document.getElementById("voiceId").value,
-        voiceStyle: document.getElementById("voiceStyle").value,
-        volumeDucking: document.getElementById("volumeDucking").value,
-        includeHistory: document.getElementById("includeHistory").checked,
-        includeComments: document.getElementById("includeComments").checked,
-        autoStart: document.getElementById("autoStart").checked,
-      };
+      // Collect all settings
+
+      const _settings = {};
+      Object.keys(settings).forEach((key) => {
+        _settings[key] = getDomValue(key);
+      });
 
       try {
-        await chrome.storage.sync.set(settings);
+        console.log("Saving settings:", _settings);
+        await chrome.storage.sync.set(_settings);
         showStatus("Settings saved successfully!", "success");
       } catch (error) {
         showStatus("Error saving settings: " + error.message, "error");
