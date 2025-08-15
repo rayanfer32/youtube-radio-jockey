@@ -1,21 +1,5 @@
-import React from "react";
 import { createRoot } from "react-dom/client";
 import { useEffect, useState } from "react";
-
-interface Settings {
-  geminiApiKey: string;
-  murfApiKey: string;
-  rjStyle: string;
-  commentaryLength: string;
-  voiceId: string;
-  voiceStyle: string;
-  includeHistory: boolean;
-  includeComments: boolean;
-  autoStart: boolean;
-  volumeDucking: number;
-  hostName: string;
-  radioStation: string;
-}
 
 export default function Popup() {
   const [settings, setSettings] = useState<Settings>({
@@ -347,3 +331,19 @@ export default function Popup() {
 
 const root = createRoot(document.getElementById("root")!);
 root.render(<Popup />);
+
+// types
+export interface Settings {
+  geminiApiKey: string;
+  murfApiKey: string;
+  rjStyle: string;
+  commentaryLength: string;
+  voiceId: string;
+  voiceStyle: string;
+  includeHistory: boolean;
+  includeComments: boolean;
+  autoStart: boolean;
+  volumeDucking: number;
+  hostName: string;
+  radioStation: string;
+}
