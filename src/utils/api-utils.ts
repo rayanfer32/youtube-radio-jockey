@@ -5,33 +5,33 @@ const getAPISettings = async () => {
   return await chrome.storage.sync.get();
 };
 
+const stylePrompts = {
+  energetic:
+    "You are a high-energy radio DJ who's absolutely pumped about music!",
+  chill: "You are a laid-back DJ with a smooth, relaxed vibe.",
+  sarcastic:
+    "You are a witty DJ who adds clever commentary with a touch of sarcasm.",
+  professional: "You are a professional radio host with polished delivery.",
+};
+
+const lengthGuides = {
+  short: "Keep it brief and punchy (20-30 seconds when spoken)",
+  medium: "Moderate length with good flow (30-45 seconds when spoken)",
+  long: "More detailed commentary (45-60 seconds when spoken)",
+};
+
 // Generate RJ prompt based on settings
 function generateRJPrompt(
-  currentSong,
-  nextSong,
-  style = "energetic",
-  length = "medium",
-  scriptHistory,
-  comments,
-  currentSonglyrics,
-  hostName,
-  radioStation
+  currentSong: string,
+  nextSong: string | null,
+  style: keyof typeof stylePrompts,
+  length: keyof typeof lengthGuides,
+  scriptHistory: string | null,
+  comments: string | null,
+  currentSonglyrics: string | null,
+  hostName: string,
+  radioStation: string
 ) {
-  const stylePrompts = {
-    energetic:
-      "You are a high-energy radio DJ who's absolutely pumped about music!",
-    chill: "You are a laid-back DJ with a smooth, relaxed vibe.",
-    sarcastic:
-      "You are a witty DJ who adds clever commentary with a touch of sarcasm.",
-    professional: "You are a professional radio host with polished delivery.",
-  };
-
-  const lengthGuides = {
-    short: "Keep it brief and punchy (20-30 seconds when spoken)",
-    medium: "Moderate length with good flow (30-45 seconds when spoken)",
-    long: "More detailed commentary (45-60 seconds when spoken)",
-  };
-
   const basePrompt = stylePrompts[style] || stylePrompts.energetic;
   const lengthGuide = lengthGuides[length] || lengthGuides.medium;
 
@@ -60,7 +60,7 @@ ONLY respond with the commentary text, do not include any additional instruction
 }
 
 // Call Gemini API with error handling
-async function callGeminiAPI(prompt, apiKey) {
+async function callGeminiAPI(prompt: string, apiKey: string) {
   if (!apiKey) {
     throw new Error("Gemini API key not configured");
   }
@@ -104,8 +104,8 @@ async function callGeminiAPI(prompt, apiKey) {
 
 // Call Murf.ai API with error handling
 async function callMurfAPI(
-  text,
-  apiKey,
+  text: string,
+  apiKey: string,
   voiceId = "en-US-natalie",
   style = "Promo"
 ) {
@@ -155,7 +155,7 @@ async function callMurfAPI(
 }
 
 // Log commentary for export feature
-function logCommentary(currentSong, nextSong, script) {
+function logCommentary(currentSong: string, nextSong: string, script: string) {
   chrome.runtime
     .sendMessage({
       action: "logCommentary",
@@ -166,7 +166,7 @@ function logCommentary(currentSong, nextSong, script) {
     .catch(console.error);
 }
 
-async function callLyricsAPI(query) {
+async function callLyricsAPI(query: string) {
   const response = await fetch(`https://lrclib.net/api/search?q=${query}`, {
     headers: {
       "Content-Type": "application/json",
@@ -198,4 +198,5 @@ const APIUtils = {
 };
 
 // Make it globally available
-window.APIUtils = APIUtils;
+(window as any).APIUtils = APIUtils;
+export default APIUtils;

@@ -3,11 +3,7 @@
   "name": "YouTube RJ Mode",
   "version": "1.0.0",
   "description": "Transform your YouTube playlists with AI-powered Radio Jockey commentary",
-  "permissions": [
-    "activeTab",
-    "storage",
-    "scripting"
-  ],
+  "permissions": ["activeTab", "storage", "scripting"],
   "host_permissions": [
     "https://www.youtube.com/*",
     "https://api.murf.ai/*",
@@ -15,28 +11,22 @@
     "https://lrclib.net/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "content_scripts": [
     {
       "matches": ["https://www.youtube.com/*"],
-      "js": [
-        "lib/edge-tts-web.js",
-        "utils/dom-utils.js",
-        "utils/youtube-utils.js",
-        "utils/audio-utils.js", 
-        "utils/api-utils.js",
-        "content.js"
-      ],
+      "js": ["content.js"],
       "run_at": "document_end"
     }
   ],
   "action": {
-    "default_popup": "popup/popup.html",
-    "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
-    }
+    "default_popup": "popup.html"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   }
 }

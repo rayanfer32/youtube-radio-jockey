@@ -1,61 +1,75 @@
 "use strict";
 
-class EdgeTTS {
-  constructor() {
-    this.audio_stream = [];
-    this.audio_format = "mp3";
-    this.ws = null;
-  }
+export interface Voice {
+  Name: string;
+  ShortName: string;
+  Gender: string;
+  Locale: string;
+  VoiceType?: string;
+}
 
-  Constants = {
+export interface EdgeTTSOptions {
+  pitch?: string | number;
+  rate?: string | number;
+  volume?: string | number;
+}
+
+export class EdgeTTS {
+  audio_stream: Uint8Array[] & BlobPart[] = [];
+  audio_format: string = "mp3";
+  ws: WebSocket | null = null;
+
+  private Constants = {
     TRUSTED_CLIENT_TOKEN: "6A5AA1D4EAFF4E9FB37E23D68491D6F4",
-    WSS_URL: "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1",
-    VOICES_URL: "https://speech.platform.bing.com/consumer/speech/synthesize/readaloud/voices/list",
+    WSS_URL:
+      "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1",
+    VOICES_URL:
+      "https://speech.platform.bing.com/consumer/speech/synthesize/readaloud/voices/list",
   };
 
-  async getVoices() {
+  async getVoices(): Promise<Voice[]> {
     const response = await fetch(
       `${this.Constants.VOICES_URL}?trustedclienttoken=${this.Constants.TRUSTED_CLIENT_TOKEN}`
     );
-    const data = await response.json();
+    const data: Voice[] = await response.json();
     return data.map((voice) => {
-      delete voice.VoiceTag;
-      delete voice.SuggestedCodec;
-      delete voice.Status;
-      return voice;
+      const { Name, ShortName, Gender, Locale, VoiceType } = voice;
+      return { Name, ShortName, Gender, Locale, VoiceType };
     });
   }
 
-  async getVoicesByLanguage(locale) {
+  async getVoicesByLanguage(locale: string): Promise<Voice[]> {
     const voices = await this.getVoices();
     return voices.filter((voice) => voice.Locale.startsWith(locale));
   }
 
-  async getVoicesByGender(gender) {
+  async getVoicesByGender(gender: string): Promise<Voice[]> {
     const voices = await this.getVoices();
     return voices.filter((voice) => voice.Gender === gender);
   }
 
-  generateUUID() {
-    return "xxxxxxxx-xxxx-xxxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+  generateUUID(): string {
+    return "xxxxxxxx-xxxx-xxxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
       const r = (Math.random() * 16) | 0;
       const v = c === "x" ? r : (r & 0x3) | 0x8;
       return v.toString(16);
     });
   }
 
-  validatePitch(pitch) {
+  validatePitch(pitch: string | number): string {
     if (typeof pitch === "number") {
       return pitch >= 0 ? `+${pitch}Hz` : `${pitch}Hz`;
     }
     if (!/^[+-]?\d{1,3}(?:\.\d+)?Hz$/.test(pitch)) {
-      throw new Error("Invalid pitch format. Expected '-100Hz to +100Hz' or a number.");
+      throw new Error(
+        "Invalid pitch format. Expected '-100Hz to +100Hz' or a number."
+      );
     }
     return pitch;
   }
 
-  validateRate(rate) {
-    let rateValue;
+  validateRate(rate: string | number): string {
+    let rateValue: number;
     if (typeof rate === "string") {
       rateValue = parseFloat(rate.replace("%", ""));
       if (isNaN(rateValue)) throw new Error("Invalid rate format.");
@@ -65,8 +79,8 @@ class EdgeTTS {
     return rateValue >= 0 ? `+${rateValue}%` : `${rateValue}%`;
   }
 
-  validateVolume(volume) {
-    let volumeValue;
+  validateVolume(volume: string | number): string {
+    let volumeValue: number;
     if (typeof volume === "string") {
       volumeValue = parseInt(volume.replace("%", ""), 10);
       if (isNaN(volumeValue)) throw new Error("Invalid volume format.");
@@ -79,7 +93,11 @@ class EdgeTTS {
     return `${volumeValue}%`;
   }
 
-  async synthesize(text, voice = "en-US-AnaNeural", options = {}) {
+  async synthesize(
+    text: string,
+    voice: string = "en-US-AnaNeural",
+    options: EdgeTTSOptions = {}
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       this.audio_stream = [];
       const req_id = this.generateUUID();
@@ -97,14 +115,14 @@ class EdgeTTS {
       }, 30000);
 
       this.ws.addEventListener("open", () => {
-        this.ws.send(this.buildTTSConfigMessage());
+        this.ws?.send(this.buildTTSConfigMessage());
         const speechMessage =
           `X-RequestId:${req_id}\r\nContent-Type:application/ssml+xml\r\n` +
           `X-Timestamp:${new Date().toISOString()}Z\r\nPath:ssml\r\n\r\n${SSML_text}`;
-        this.ws.send(speechMessage);
+        this.ws?.send(speechMessage);
       });
 
-      this.ws.addEventListener("message", (event) => {
+      this.ws.addEventListener("message", (event: MessageEvent) => {
         this.processAudioData(event.data);
       });
 
@@ -123,7 +141,7 @@ class EdgeTTS {
     });
   }
 
-  getSSML(text, voice, options = {}) {
+  getSSML(text: string, voice: string, options: EdgeTTSOptions = {}): string {
     if (typeof options.pitch === "string") {
       options.pitch = options.pitch.replace("hz", "Hz");
     }
@@ -133,16 +151,15 @@ class EdgeTTS {
     return `<speak version='1.0' xml:lang='en-US'><voice name='${voice}'><prosody pitch='${pitch}' rate='${rate}' volume='${volume}'>${text}</prosody></voice></speak>`;
   }
 
-  buildTTSConfigMessage() {
+  buildTTSConfigMessage(): string {
     return (
       `X-Timestamp:${new Date().toISOString()}Z\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n` +
       `{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":false,"wordBoundaryEnabled":true},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}`
     );
   }
 
-  processAudioData(data) {
+  processAudioData(data: ArrayBuffer | string): void {
     if (typeof data === "string") {
-      // text message, not audio
       if (data.includes("Path:turn.end")) {
         this.ws?.close();
       }
@@ -161,7 +178,7 @@ class EdgeTTS {
     }
   }
 
-  indexOfSubarray(haystack, needle) {
+  indexOfSubarray(haystack: Uint8Array, needle: Uint8Array): number {
     for (let i = 0; i <= haystack.length - needle.length; i++) {
       let match = true;
       for (let j = 0; j < needle.length; j++) {
@@ -175,23 +192,24 @@ class EdgeTTS {
     return -1;
   }
 
-  toBlob(format = this.audio_format) {
+  toBlob(format: string = this.audio_format): Blob {
     if (this.audio_stream.length === 0) {
       throw new Error("No audio data available. Did you run synthesize() first?");
     }
     return new Blob(this.audio_stream, { type: `audio/${format}` });
   }
 
-  toBase64() {
+  async toBase64(): Promise<string> {
+    const blob = this.toBlob();
     return new Promise((resolve) => {
-      const blob = this.toBlob();
       const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result.split(",")[1]);
+      reader.onloadend = () =>
+        resolve((reader.result as string).split(",")[1]);
       reader.readAsDataURL(blob);
     });
   }
 
-  download(filename = "output.mp3") {
+  download(filename: string = "output.mp3"): void {
     const blob = this.toBlob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -202,5 +220,4 @@ class EdgeTTS {
   }
 }
 
-
-window.EdgeTTS = EdgeTTS;
+(window as unknown as { EdgeTTS: typeof EdgeTTS }).EdgeTTS = EdgeTTS;
