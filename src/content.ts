@@ -198,9 +198,8 @@ class YouTubeRJMode {
 
     this.isRJPlaying = true;
 
+    const video = YouTubeUtils.getVideoElement();
     try {
-      const video: HTMLVideoElement | null = YouTubeUtils.getVideoElement();
-
       if (!video) {
         console.error("No video element found on the page.");
         this.isRJPlaying = false;
@@ -230,10 +229,11 @@ class YouTubeRJMode {
     } catch (error) {
       console.error("Error playing RJ commentary:", error);
       this.isRJPlaying = false;
-      await AudioUtils.restoreVolume(
-        YouTubeUtils.getVideoElement(),
-        this.originalVolume
-      );
+
+      // Restore original volume
+      if (video) {
+        await AudioUtils.restoreVolume(video, this.originalVolume);
+      }
     } finally {
       this.generatedAudioData = null; // Clear audio data after playback
     }
