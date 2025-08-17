@@ -24,7 +24,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         currentSong: request.currentSong,
         nextSong: request.nextSong,
         script: request.script,
-        url: sender.tab.url,
+        url: sender?.tab?.url,
       });
 
       // Keep only last 100 logs

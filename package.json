@@ -1,0 +1,17 @@
+{
+  "name": "bun-ts-extension",
+  "private": true,
+  "scripts": {
+    "dev": "NODE_ENV=development bun run --watch --hot build.ts",
+    "build": "NODE_ENV=production bun run build.ts"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.270",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
+}

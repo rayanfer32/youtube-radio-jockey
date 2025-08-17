@@ -52,7 +52,7 @@ const hideLoadingIndicator = () => {
   if (loading) loading.remove();
 };
 
-const showErrorMessage = (message) => {
+const showErrorMessage = (message: string) => {
   const error = document.createElement("div");
   error.style.cssText = `
       position: fixed;
@@ -76,7 +76,7 @@ const showErrorMessage = (message) => {
   }, 5000);
 };
 
-const createRJModeButton = (toggleRJMode) => {
+const createRJModeButton = (toggleRJMode: Function) => {
   const button = document.createElement("button");
   button.id = "rj-mode-button";
   button.innerHTML = "🎙️ Start RJ Mode";
@@ -117,7 +117,7 @@ const dismissNotification = () => {
   }
 };
 
-const showRJModePrompt = (toggleRJMode) => {
+const showRJModePrompt = (toggleRJMode: Function) => {
   // Create a more prominent notification for playlist detection
   const notification = document.createElement("div");
   notification.id = "rj-mode-notification";
@@ -187,14 +187,16 @@ const showRJModePrompt = (toggleRJMode) => {
   document.body.appendChild(notification);
 
   // Event listeners for the notification
-  document.getElementById("enable-rj-mode").addEventListener("click", () => {
+  document.getElementById("enable-rj-mode")?.addEventListener("click", () => {
     dismissNotification();
     toggleRJMode();
   });
 
-  document.getElementById("dismiss-rj-prompt").addEventListener("click", () => {
-    dismissNotification();
-  });
+  document
+    .getElementById("dismiss-rj-prompt")
+    ?.addEventListener("click", () => {
+      dismissNotification();
+    });
 
   // Auto-dismiss after 10 seconds
   setTimeout(() => {
@@ -211,4 +213,5 @@ const DomUtils = {
   hideLoadingIndicator,
 };
 
-window.DomUtils = DomUtils;
+(window as any).DomUtils = DomUtils;
+export default DomUtils;
