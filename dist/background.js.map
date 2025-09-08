@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "sources": ["..\\src\\background.ts"],
+  "sourcesContent": [
+    "// Background script for handling extension lifecycle and API management\r\nchrome.runtime.onInstalled.addListener(() => {\r\n  console.log(\"YouTube RJ Mode extension installed\");\r\n\r\n  // Set default settings\r\n  chrome.storage.sync.set({\r\n    commentaryLength: \"short\",\r\n    rjStyle: \"sarcastic\",\r\n    voiceGender: \"male\",\r\n    volumeDucking: 70,\r\n    darkMode: false,\r\n    autoStart: false,\r\n  });\r\n});\r\n\r\n// Handle messages from content script\r\nchrome.runtime.onMessage.addListener((request, sender, sendResponse) => {\r\n  if (request.action === \"logCommentary\") {\r\n    // Store commentary logs\r\n    chrome.storage.local.get([\"commentaryLogs\"], (result) => {\r\n      const logs = result.commentaryLogs || [];\r\n      logs.push({\r\n        timestamp: new Date().toISOString(),\r\n        currentSong: request.currentSong,\r\n        nextSong: request.nextSong,\r\n        script: request.script,\r\n        url: sender?.tab?.url,\r\n      });\r\n\r\n      // Keep only last 100 logs\r\n      if (logs.length > 100) {\r\n        logs.splice(0, logs.length - 100);\r\n      }\r\n\r\n      chrome.storage.local.set({ commentaryLogs: logs });\r\n    });\r\n  }\r\n});\r\n"
+  ],
+  "mappings": "AACA,OAAO,QAAQ,YAAY,YAAY,IAAM,CAC3C,QAAQ,IAAI,qCAAqC,EAGjD,OAAO,QAAQ,KAAK,IAAI,CACtB,iBAAkB,QAClB,QAAS,YACT,YAAa,OACb,cAAe,GACf,SAAU,GACV,UAAW,EACb,CAAC,EACF,EAGD,OAAO,QAAQ,UAAU,YAAY,CAAC,EAAS,EAAQ,IAAiB,CACtE,GAAI,EAAQ,SAAW,gBAErB,OAAO,QAAQ,MAAM,IAAI,CAAC,gBAAgB,EAAG,CAAC,IAAW,CACvD,IAAM,EAAO,EAAO,gBAAkB,CAAC,EAUvC,GATA,EAAK,KAAK,CACR,UAAW,IAAI,KAAK,EAAE,YAAY,EAClC,YAAa,EAAQ,YACrB,SAAU,EAAQ,SAClB,OAAQ,EAAQ,OAChB,IAAK,GAAQ,KAAK,GACpB,CAAC,EAGG,EAAK,OAAS,IAChB,EAAK,OAAO,EAAG,EAAK,OAAS,GAAG,EAGlC,OAAO,QAAQ,MAAM,IAAI,CAAE,eAAgB,CAAK,CAAC,EAClD,EAEJ",
+  "debugId": "8C4BD33F8E28B9A364756E2164756E21",
+  "names": []
+}
