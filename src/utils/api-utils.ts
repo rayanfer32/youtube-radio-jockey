@@ -64,41 +64,41 @@ async function callGeminiAPI(prompt: string, apiKey: string) {
     throw new Error("Gemini API key not configured");
   }
 
-  const response = await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-goog-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        contents: [
+  const payload = {
+    contents: [
+      {
+        parts: [
           {
-            parts: [
-              {
-                text: prompt,
-              },
-            ],
+            text: prompt,
           },
         ],
-      }),
-    }
-  );
+      },
+    ],
+  };
 
-  if (!response.ok) {
-    throw new Error(
-      `Gemini API error: ${response.status} ${response.statusText}`
+  return new Promise<string>((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      { action: "callGemini", payload, apiKey },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          return reject(new Error(chrome.runtime.lastError.message));
+        }
+
+        if (!response || !response.success) {
+          return reject(
+            new Error(response?.error || "Failed to call Gemini API")
+          );
+        }
+
+        const data = response.data;
+        if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+          return reject(new Error("Invalid response from Gemini API"));
+        }
+
+        resolve(data.candidates[0].content.parts[0].text);
+      }
     );
-  }
-
-  const data = await response.json();
-
-  if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-    throw new Error("Invalid response from Gemini API");
-  }
-
-  return data.candidates[0].content.parts[0].text;
+  });
 }
 
 // Call ChatJimmy API with error handling
@@ -107,7 +107,7 @@ async function callChatJimmyAPI(prompt: string) {
     messages: [
       {
         role: "system",
-        content: "You are a commentary ai bot",
+        content: "Generate commentary without expressions in the brackets",
       },
     ],
     chatOptions: {
@@ -158,44 +158,47 @@ async function callMurfAPI(
     throw new Error("Murf.ai API key not configured");
   }
 
-  const response = await fetch("https://api.murf.ai/v1/speech/generate", {
-    method: "POST",
-    headers: {
-      "api-key": apiKey,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      text: text,
-      voiceId: voiceId,
-      style: style,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(
-      `Murf.ai API error: ${response.status} ${response.statusText} - ${errorData.message || "Unknown error"
-      }`
-    );
-  }
-
-  const data = await response.json();
-
-  if (!data.audioFile) {
-    throw new Error("No audio file returned from Murf.ai API");
-  }
-
-  // Fetch the actual audio file
-  const audioResponse = await fetch(data.audioFile);
-  if (!audioResponse.ok) {
-    throw new Error("Failed to fetch audio file from Murf.ai");
-  }
-
-  return {
-    audioBlob: await audioResponse.blob(),
-    duration: data.audioLengthInSeconds,
-    remainingChars: data.remainingCharacterCount,
+  const payload = {
+    text: text,
+    voiceId: voiceId,
+    style: style,
   };
+
+  return new Promise<{ audioBlob: Blob; duration: number; remainingChars: number }>(
+    (resolve, reject) => {
+      chrome.runtime.sendMessage(
+        { action: "callMurf", payload, apiKey },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            return reject(new Error(chrome.runtime.lastError.message));
+          }
+
+          if (!response || !response.success) {
+            return reject(
+              new Error(response?.error || "Failed to call Murf API")
+            );
+          }
+
+          const data = response.data;
+          const base64 = response.audioBase64;
+
+          // Convert base64 to Blob
+          const binaryString = atob(base64);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          const blob = new Blob([bytes], { type: "audio/mpeg" });
+
+          resolve({
+            audioBlob: blob,
+            duration: data.audioLengthInSeconds,
+            remainingChars: data.remainingCharacterCount,
+          });
+        }
+      );
+    }
+  );
 }
 
 // Log commentary for export feature
@@ -211,25 +214,26 @@ function logCommentary(currentSong: string, nextSong: string, script: string) {
 }
 
 async function callLyricsAPI(query: string) {
-  const response = await fetch(`https://lrclib.net/api/search?q=${query}`, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-    referrer: "https://lrclib.net/docs",
-    method: "GET",
-  });
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      { action: "callLyrics", query },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          return reject(new Error(chrome.runtime.lastError.message));
+        }
 
-  if (!response.ok) {
-    throw new Error(
-      `Lyrics API error: ${response.status} ${response.statusText}`
+        if (!response || !response.success) {
+          return reject(
+            new Error(response?.error || "Failed to call Lyrics API")
+          );
+        }
+
+        const data = response.data;
+        console.log("Lyrics API response:", data);
+        resolve(data?.[0]?.plainLyrics);
+      }
     );
-  }
-
-  const data = await response.json();
-  console.log("Lyrics API response:", data);
-  return data?.[0]?.plainLyrics; // array of lyrics objects , data[0].plainLyrics
-
-  // await callLyricsAPI("Hoang - Run Back to You");
+  });
 }
 
 const APIUtils = {

@@ -1,5 +1,8 @@
 import { createRoot } from "react-dom/client";
 import { useEffect, useState } from "react";
+import APIUtils from "./utils/api-utils";
+import { GoogleTTS } from "./utils/google-tts";
+
 
 export default function Popup() {
 
@@ -8,7 +11,7 @@ export default function Popup() {
     murfApiKey: "",
     rjStyle: "sarcastic",
     commentaryLength: "short",
-    voiceId: "en-US-AvaMultilingualNeural",
+    voiceId: 'en-GB',
     voiceStyle: "default",
     includeHistory: false,
     includeComments: false,
@@ -69,8 +72,68 @@ export default function Popup() {
     });
   };
 
+  const [testResult, setTestResult] = useState<string | null>(null);
+  const [isTesting, setIsTesting] = useState(false);
+
+  const testLyrics = async () => {
+    setIsTesting(true);
+    setTestResult("Testing Lyrics API...");
+    try {
+      const lyrics = await APIUtils.callLyricsAPI("Kalax - Out of Time");
+      setTestResult(
+        lyrics ? "✅ Lyrics found!" : "❌ No lyrics found (but API worked)"
+      );
+    } catch (e: any) {
+      setTestResult("❌ Error: " + e.message);
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  const testTTS = async () => {
+    setIsTesting(true);
+    setTestResult("Testing TTS API...");
+    try {
+      const tts = new GoogleTTS();
+      await tts.synthesize(
+        "Welcome to the show! This is a test of the Google TTS system.",
+        settings.voiceId || "en-US"
+      );
+      const audioBlob = tts.toBlob();
+      const url = URL.createObjectURL(audioBlob);
+      const audio = new Audio(url);
+      audio.play();
+      setTestResult("✅ TTS Audio generated and playing...");
+    } catch (e: any) {
+      setTestResult("❌ Error: " + e.message);
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  const testLLM = async () => {
+    if (!settings.geminiApiKey) {
+      setTestResult("❌ Please enter and save Gemini API Key first");
+      return;
+    }
+    setIsTesting(true);
+    setTestResult("Testing LLM API...");
+    try {
+      const response = await APIUtils.callGeminiAPI(
+        "Say hello as a radio DJ in one short sentence.",
+        settings.geminiApiKey
+      );
+      setTestResult("✅ LLM: " + response);
+    } catch (e: any) {
+      setTestResult("❌ Error: " + e.message);
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+
   return (
-    <div className="w-[400px] bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans p-4">
+    <div className="w-[400px] mb-10 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans p-4">
       <div className="max-w-2xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center">
@@ -127,7 +190,7 @@ export default function Popup() {
                 setSettings({ ...settings, voiceId: e.target.value })
               }
               className="w-full px-4 py-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter the voice ID (e.g., en-US-natalie)"
+              placeholder="Enter language code (e.g., en, hi, bn)"
             />
           </div>
 
@@ -295,7 +358,41 @@ export default function Popup() {
             </>
           )}
         </div>
+
+        {/* Test Section */}
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow space-y-4">
+          <h3 className="text-xl font-semibold mb-4">🧪 API Diagnostics</h3>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={testLyrics}
+              disabled={isTesting}
+              className="px-3 py-2 text-xs font-bold text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50"
+            >
+              Test Lyrics
+            </button>
+            <button
+              onClick={testTTS}
+              disabled={isTesting}
+              className="px-3 py-2 text-xs font-bold text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50"
+            >
+              Test TTS
+            </button>
+            <button
+              onClick={testLLM}
+              disabled={isTesting}
+              className="px-3 py-2 text-xs font-bold text-white bg-orange-600 rounded-lg hover:bg-orange-700 disabled:opacity-50"
+            >
+              Test LLM
+            </button>
+          </div>
+          {testResult && (
+            <div className="mt-4 p-3 text-xs bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 break-words">
+              {testResult}
+            </div>
+          )}
+        </div>
       </div>
+
 
       {/* Footer Actions */}
       <div className="fixed p-1 bottom-0 left-0 right-0 bg-gray-100 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">

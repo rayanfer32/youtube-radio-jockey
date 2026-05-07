@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YouTube RJ Mode",
-  "version": "1.0.2",
+  "version": "1.0.8",
   "description": "Transform your YouTube playlists with AI-powered Radio Jockey commentary",
   "permissions": [
     "activeTab",
@@ -13,7 +13,8 @@
     "https://api.murf.ai/*",
     "https://generativelanguage.googleapis.com/*",
     "https://lrclib.net/*",
-    "https://chatjimmy.ai/*"
+    "https://chatjimmy.ai/*",
+    "https://translate.google.com/*"
   ],
   "background": {
     "service_worker": "background.js",

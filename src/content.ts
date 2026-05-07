@@ -2,7 +2,7 @@ import APIUtils from "./utils/api-utils";
 import AudioUtils from "./utils/audio-utils";
 import DomUtils from "./utils/dom-utils";
 import YouTubeUtils from "./utils/youtube-utils";
-import { EdgeTTS } from "./utils/edge-tts-web";
+import { GoogleTTS } from "./utils/google-tts";
 
 class YouTubeRJMode {
   isRJModeActive: boolean;
@@ -17,7 +17,7 @@ class YouTubeRJMode {
   videoChangeTimeout: any;
   progressInterval: any;
   scriptHistory: any[];
-  edgeTTS: EdgeTTS;
+  googleTTS: GoogleTTS;
   ttsVoice: string;
   generatedAudioData: any;
 
@@ -34,8 +34,8 @@ class YouTubeRJMode {
     this.videoChangeTimeout = null;
     this.progressInterval = null;
     this.scriptHistory = [];
-    this.edgeTTS = new EdgeTTS(); // Initialize Edge TTS instance
-    this.ttsVoice = "en-US-AvaMultilingualNeural"; // "en-US-AriaNeural"; // Default TTS voice
+    this.googleTTS = new GoogleTTS(); // Initialize Google TTS instance
+    this.ttsVoice = "en"; // Default TTS voice (language code for Google TTS)
     this.generatedAudioData = null; // Store generated audio data
 
     this.init();
@@ -126,7 +126,7 @@ class YouTubeRJMode {
         settings.commentaryLength,
         settings.includeHistory ? this.scriptHistory.join("\n") : "",
         settings.includeComments ? YouTubeUtils.getComments().join("\n") : "",
-        currentSonglyrics,
+        currentSonglyrics as string,
         settings.hostName,
         settings.radioStation
       );
@@ -150,14 +150,17 @@ class YouTubeRJMode {
           settings.voiceStyle
         );
       } else {
-        // If Murf API is not available or we want to fallback to Edge TTS
-        await this.edgeTTS.synthesize(
-          script,
-          settings.voiceId || this.ttsVoice
-        );
+        // If Murf API is not available or we want to fallback to Google TTS
+        let lang = settings.voiceId || this.ttsVoice;
+        // If it looks like an Edge TTS voice ID (e.g., en-US-AriaNeural), extract the lang part
+        if (lang.includes("-") && lang.split("-").length > 2) {
+          lang = lang.split("-").slice(0, 2).join("-");
+        }
+
+        await this.googleTTS.synthesize(script, lang);
         audioData = {
-          audioBlob: this.edgeTTS.toBlob(),
-          // audioUrl: URL.createObjectURL(this.edgeTTS.toBlob()),
+          audioBlob: this.googleTTS.toBlob(),
+          // audioUrl: URL.createObjectURL(this.googleTTS.toBlob()),
         };
       }
 
