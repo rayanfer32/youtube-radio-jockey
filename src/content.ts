@@ -133,10 +133,7 @@ class YouTubeRJMode {
 
       console.log("Generated prompt:", prompt);
 
-      const script = await APIUtils.callGeminiAPI(
-        prompt,
-        settings.geminiApiKey
-      );
+      const script = await APIUtils.callChatJimmyAPI(prompt);
 
       console.log("Generated script:", script);
 

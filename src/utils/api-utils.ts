@@ -40,9 +40,8 @@ function generateRJPrompt(
 
   return `${basePrompt} ${lengthGuide} ${radioInfo}. 
 
-${
-  scriptHistory && "Here's some of your previous commentary: \n" + scriptHistory
-}
+${scriptHistory && "Here's some of your previous commentary: \n" + scriptHistory
+    }
 ${comments && "Here are some comments from viewers: \n" + comments}
 
 Current song: "${currentSong}"
@@ -102,6 +101,52 @@ async function callGeminiAPI(prompt: string, apiKey: string) {
   return data.candidates[0].content.parts[0].text;
 }
 
+// Call ChatJimmy API with error handling
+async function callChatJimmyAPI(prompt: string) {
+  const payload = {
+    messages: [
+      {
+        role: "system",
+        content: "You are a commentary ai bot",
+      },
+    ],
+    chatOptions: {
+      selectedModel: "llama3.1-8B",
+      systemPrompt: prompt,
+      topK: 2,
+    },
+    attachment: null,
+  };
+
+  return new Promise<string>((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      { action: "callChatJimmy", payload },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          return reject(new Error(chrome.runtime.lastError.message));
+        }
+
+        if (!response || !response.success) {
+          return reject(
+            new Error(response?.error || "Failed to call ChatJimmy API")
+          );
+        }
+
+        const text = response.data;
+        // The response might contain stats after <|stats|>. We want the part before it.
+        const statsIndex = text.indexOf("<|stats|>");
+        let result = text;
+        if (statsIndex !== -1) {
+          result = text.substring(0, statsIndex);
+        }
+
+        // Clean up potential quotes and whitespace
+        resolve(result.trim().replace(/^"|"$/g, "").replace(/\\n/g, "\n").trim());
+      }
+    );
+  });
+}
+
 // Call Murf.ai API with error handling
 async function callMurfAPI(
   text: string,
@@ -129,8 +174,7 @@ async function callMurfAPI(
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(
-      `Murf.ai API error: ${response.status} ${response.statusText} - ${
-        errorData.message || "Unknown error"
+      `Murf.ai API error: ${response.status} ${response.statusText} - ${errorData.message || "Unknown error"
       }`
     );
   }
@@ -191,6 +235,7 @@ async function callLyricsAPI(query: string) {
 const APIUtils = {
   callMurfAPI,
   callGeminiAPI,
+  callChatJimmyAPI,
   callLyricsAPI,
   logCommentary,
   getAPISettings,

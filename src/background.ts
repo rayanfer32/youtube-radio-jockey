@@ -34,5 +34,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
       chrome.storage.local.set({ commentaryLogs: logs });
     });
+  } else if (request.action === "callChatJimmy") {
+    fetch("https://chatjimmy.ai/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request.payload),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`ChatJimmy API error: ${response.status}`);
+        }
+        return response.text();
+      })
+      .then((text) => sendResponse({ success: true, data: text }))
+      .catch((error) => sendResponse({ success: false, error: error.message }));
+    return true; // Keep message channel open for async response
   }
 });

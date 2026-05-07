@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import { useEffect, useState } from "react";
 
 export default function Popup() {
+
   const [settings, setSettings] = useState<Settings>({
     geminiApiKey: "",
     murfApiKey: "",
@@ -60,9 +61,8 @@ export default function Popup() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `youtube-rj-logs-${
-        new Date().toISOString().split("T")[0]
-      }.json`;
+      a.download = `youtube-rj-logs-${new Date().toISOString().split("T")[0]
+        }.json`;
       a.click();
       URL.revokeObjectURL(url);
       showStatus("Logs exported successfully!", "success");
@@ -301,9 +301,8 @@ export default function Popup() {
       <div className="fixed p-1 bottom-0 left-0 right-0 bg-gray-100 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
         {status && (
           <div
-            className={`text-center text-sm ${
-              status.type === "success" ? "text-green-600" : "text-red-600"
-            }`}
+            className={`text-center text-sm ${status.type === "success" ? "text-green-600" : "text-red-600"
+              }`}
           >
             {status.message}
           </div>
