@@ -54,12 +54,12 @@ class YouTubeRJMode {
 
   async promptUserForAPIKeys() {
     let settings = await APIUtils.getAPISettings();
-    if (!settings.geminiApiKey) {
-      let geminiApiKey = prompt("Enter your Gemini API Key:");
-      if (geminiApiKey) {
-        chrome.storage.sync.set({ geminiApiKey });
+    if (!settings.openRouterApiKey) {
+      let openRouterApiKey = prompt("Enter your OpenRouter API Key:");
+      if (openRouterApiKey) {
+        chrome.storage.sync.set({ openRouterApiKey });
       } else {
-        alert("Get free API key from https://aistudio.google.com/apikey");
+        alert("Get free API key from https://openrouter.ai/keys");
       }
     }
     const provider =
