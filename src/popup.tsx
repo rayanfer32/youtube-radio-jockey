@@ -414,6 +414,33 @@ export default function Popup() {
         </div>
       </header>
 
+      {/* Module Selector Tabs (NI Instrument Bank Style) */}
+      <nav className="bg-[#101114] border-b border-[#272B33] px-3 flex justify-between gap-2 py-1.5 text-[12.5px] font-mono tracking-wider font-semibold flex-shrink-0">
+        {(["PERSONA", "TTS", "LLM", "DIAGNOSTICS"] as TabType[]).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`flex-1 py-1.5 px-2 rounded-t flex items-center justify-center gap-1.5 transition-all cursor-pointer ${activeTab === tab
+              ? "bg-[#1F2227] text-[#00D2C4] border-b-2 border-[#00D2C4] shadow-inner font-bold"
+              : "text-neutral-400 hover:text-slate-200 hover:bg-neutral-800/40"
+              }`}
+          >
+            {activeTab === tab && <span className="w-1.5 h-1.5 rounded-full bg-[#00D2C4] shadow-[0_0_4px_#00D2C4]"></span>}
+            <span>{tab}</span>
+          </button>
+        ))}
+      </nav>
+
+      {/* Center Deck */}
+      <div className="relative flex-1 flex flex-col min-h-0 overflow-hidden">
+        <main
+          ref={mainRef}
+          onScroll={checkScroll}
+          className="p-3 pb-10 bg-[#181A1E] flex-1 rack-scrollbar"
+        >
+          {/* TAB 1: PERSONA */}
+          {activeTab === "PERSONA" && (
+            <div className="space-y-3">
       {/* Signature NI 4-Macro Parameter Strip (Top Hardware Row) */}
       <section className="px-3.5 py-2.5 bg-gradient-to-b from-[#14161a] to-[#0F1012] border-b border-[#272B33] flex-shrink-0">
         <div className="flex items-center justify-between mb-1.5 px-0.5">
@@ -510,34 +537,6 @@ export default function Popup() {
 
         </div>
       </section>
-
-      {/* Module Selector Tabs (NI Instrument Bank Style) */}
-      <nav className="bg-[#101114] border-b border-[#272B33] px-3 flex justify-between gap-2 py-1.5 text-[12.5px] font-mono tracking-wider font-semibold flex-shrink-0">
-        {(["PERSONA", "TTS", "LLM", "DIAGNOSTICS"] as TabType[]).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-1.5 px-2 rounded-t flex items-center justify-center gap-1.5 transition-all cursor-pointer ${activeTab === tab
-              ? "bg-[#1F2227] text-[#00D2C4] border-b-2 border-[#00D2C4] shadow-inner font-bold"
-              : "text-neutral-400 hover:text-slate-200 hover:bg-neutral-800/40"
-              }`}
-          >
-            {activeTab === tab && <span className="w-1.5 h-1.5 rounded-full bg-[#00D2C4] shadow-[0_0_4px_#00D2C4]"></span>}
-            <span>{tab}</span>
-          </button>
-        ))}
-      </nav>
-
-      {/* Center Deck */}
-      <div className="relative flex-1 flex flex-col min-h-0 overflow-hidden">
-        <main
-          ref={mainRef}
-          onScroll={checkScroll}
-          className="p-3 pb-10 bg-[#181A1E] flex-1 rack-scrollbar"
-        >
-          {/* TAB 1: PERSONA */}
-          {activeTab === "PERSONA" && (
-            <div className="space-y-3">
               {/* Station & Host Identifiers */}
               <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed">
                 <div className="text-[11.5px] font-mono text-neutral-400 tracking-widest uppercase mb-2 flex items-center justify-between font-bold">
