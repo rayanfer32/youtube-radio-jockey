@@ -13,6 +13,12 @@ const YouTubeUtils = {
 
   getCurrentVideoTitle() {
     if (isYouTubeMusic()) {
+      // Most reliable: the title shown in the player bar
+      const playerBarTitle = document
+        .querySelector(".title.style-scope.ytmusic-player-bar")
+        ?.textContent?.trim();
+      if (playerBarTitle) return playerBarTitle;
+
       const items = Array.from(
         document.querySelectorAll("ytmusic-responsive-list-item-renderer")
       );
@@ -82,17 +88,35 @@ const YouTubeUtils = {
       );
       if (items.length === 0) return "";
 
-      // Find current item by play state, then by video id
-      let idx = items.findIndex((it) => {
-        const state = it.getAttribute("play-button-state");
-        return state === "playing" || state === "paused";
-      });
+      // Identify current item by player bar title first
+      const playerBarTitle = document
+        .querySelector(".title.style-scope.ytmusic-player-bar")
+        ?.textContent?.trim();
+
+      let idx = -1;
+      if (playerBarTitle) {
+        idx = items.findIndex((it) => {
+          const t = it.querySelector("yt-formatted-string.title")?.textContent?.trim();
+          return t === playerBarTitle;
+        });
+      }
+
+      // Then by play state
+      if (idx === -1) {
+        idx = items.findIndex((it) => {
+          const state = it.getAttribute("play-button-state");
+          return state === "playing" || state === "paused";
+        });
+      }
+
+      // Then by video id
       if (idx === -1) {
         const vid = this.extractVideoId();
         if (vid) {
           idx = items.findIndex((it) => (it.innerHTML || "").includes(vid));
         }
       }
+
       if (idx === -1) idx = 0;
 
       const next = items[idx + 1];
