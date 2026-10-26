@@ -13,16 +13,27 @@ const YouTubeUtils = {
 
   getCurrentVideoTitle() {
     if (isYouTubeMusic()) {
-      // Prefer the playlist item matching the current video id
+      const items = Array.from(
+        document.querySelectorAll("ytmusic-responsive-list-item-renderer")
+      );
+
+      // Prefer the item currently playing/paused in the playlist
+      const current = items.find((it) => {
+        const state = it.getAttribute("play-button-state");
+        return state === "playing" || state === "paused";
+      });
+      const currentTitle = current
+        ?.querySelector("yt-formatted-string.title")
+        ?.textContent?.trim();
+      if (currentTitle) return currentTitle;
+
+      // Fallback: playlist item matching the current video id
       const vid = this.extractVideoId();
       if (vid) {
-        const items = Array.from(
-          document.querySelectorAll("ytmusic-responsive-list-item-renderer")
-        );
-        const current = items.find((it) =>
+        const byVid = items.find((it) =>
           (it.innerHTML || "").includes(vid)
         );
-        const title = current
+        const title = byVid
           ?.querySelector("yt-formatted-string.title")
           ?.textContent?.trim();
         if (title) return title;
@@ -66,17 +77,22 @@ const YouTubeUtils = {
 
   getNextVideoTitle() {
     if (isYouTubeMusic()) {
-      const vid = this.extractVideoId();
       const items = Array.from(
         document.querySelectorAll("ytmusic-responsive-list-item-renderer")
       );
       if (items.length === 0) return "";
 
-      let idx = -1;
-      if (vid) {
-        idx = items.findIndex((it) => (it.innerHTML || "").includes(vid));
+      // Find current item by play state, then by video id
+      let idx = items.findIndex((it) => {
+        const state = it.getAttribute("play-button-state");
+        return state === "playing" || state === "paused";
+      });
+      if (idx === -1) {
+        const vid = this.extractVideoId();
+        if (vid) {
+          idx = items.findIndex((it) => (it.innerHTML || "").includes(vid));
+        }
       }
-      // Fall back to first item if current not found
       if (idx === -1) idx = 0;
 
       const next = items[idx + 1];
