@@ -66,9 +66,20 @@ YouTube Radio Jockey listens along to your YouTube playlists and acts as your li
 
 ## 📦 Installation
 
-### From Source (Recommended)
+### Quick Install (No Coding / Build Required)
 
-1. Clone or download the repository:
+1. **[Download the latest ZIP](https://github.com/rayanfer32/youtube-radio-jockey/archive/refs/heads/main.zip)** and extract it to a folder on your computer.
+2. Open your browser (Chrome, Brave, Edge, Opera) and go to `chrome://extensions/`.
+3. Enable **Developer mode** using the toggle in the top-right corner.
+4. Click the **Load unpacked** button in the top-left corner.
+5. Select the **`dist`** folder inside the extracted folder.
+6. The YouTube Radio Jockey icon will now appear in your browser toolbar!
+
+---
+
+### Build From Source (For Developers)
+
+1. Clone the repository:
    ```sh
    git clone https://github.com/rayanfer32/youtube-radio-jockey.git
    cd youtube-radio-jockey
