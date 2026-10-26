@@ -15,7 +15,8 @@
     "https://lrclib.net/*",
     "https://chatjimmy.ai/*",
     "https://translate.google.com/*",
-    "https://api.fish.audio/*"
+    "https://api.fish.audio/*",
+    "https://openrouter.ai/*"
   ],
   "background": {
     "service_worker": "background.js",

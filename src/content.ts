@@ -2,7 +2,7 @@ import APIUtils from "./utils/api-utils";
 import AudioUtils from "./utils/audio-utils";
 import DomUtils from "./utils/dom-utils";
 import YouTubeUtils from "./utils/youtube-utils";
-import { GoogleTTS } from "./utils/google-tts";
+import { GoogleTTS } from "../tests/google-tts";
 import { FishAudioTTS } from "./utils/fish-audio";
 
 class YouTubeRJMode {
@@ -67,8 +67,8 @@ class YouTubeRJMode {
       (settings.fishApiKey
         ? "fish-audio"
         : settings.murfApiKey
-        ? "murf"
-        : "fish-audio");
+          ? "murf"
+          : "fish-audio");
     if (provider === "fish-audio" && !settings.fishApiKey) {
       let fishApiKey = prompt("Enter your Fish Audio API Key:");
       if (fishApiKey) {
@@ -143,7 +143,7 @@ class YouTubeRJMode {
 
       // Use API utility functions
       const settings = await APIUtils.getAPISettings();
-      const prompt = APIUtils.generateRJPrompt(
+      const { systemPrompt, currentTask } = APIUtils.generateRJPrompt(
         this.currentVideoTitle,
         this.nextVideoTitle,
         settings.rjStyle,
@@ -155,9 +155,10 @@ class YouTubeRJMode {
         settings.radioStation
       );
 
-      console.log("Generated prompt:", prompt);
+      console.log("Generated systemPrompt:", systemPrompt);
+      console.log("Generated currentTask:", currentTask);
 
-      const script = await APIUtils.callChatJimmyAPI(prompt);
+      const script = await APIUtils.callLLM(systemPrompt, currentTask, settings);
 
       console.log("Generated script:", script);
 
@@ -169,8 +170,8 @@ class YouTubeRJMode {
         (settings.fishApiKey
           ? "fish-audio"
           : settings.murfApiKey
-          ? "murf"
-          : "fish-audio");
+            ? "murf"
+            : "fish-audio");
 
       if (provider === "fish-audio") {
         if (!settings.fishApiKey) {
@@ -300,19 +301,11 @@ class YouTubeRJMode {
 
   async toggleRJMode() {
     this.isRJModeActive = !this.isRJModeActive;
-    const button = document.getElementById("rj-mode-button");
-    if (!button) {
-      console.error("RJ Mode button not found.");
-      return;
-    }
+    DomUtils.updateRJModeButton(this.isRJModeActive);
 
     if (this.isRJModeActive) {
-      button.innerHTML = "🎙️ Stop RJ Mode";
-      button.style.background = "linear-gradient(45deg, #ff4757, #ff6b6b)";
       await this.startRJMode();
     } else {
-      button.innerHTML = "🎙️ Start RJ Mode";
-      button.style.background = "linear-gradient(45deg, #ff6b6b, #4ecdc4)";
       this.stopRJMode();
     }
   }
@@ -327,6 +320,7 @@ class YouTubeRJMode {
     this.isRJPlaying = false;
     this.isGeneratingCommentary = false;
     this.lastProcessedVideo = "";
+    DomUtils.updateRJModeButton(false);
 
     // Clear any pending timeouts and intervals
     if (this.videoChangeTimeout) {

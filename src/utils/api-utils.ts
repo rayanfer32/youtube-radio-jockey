@@ -1,8 +1,29 @@
 // API-related utility functions
 
-// Get stored API settings
+export const DEFAULT_SETTINGS = {
+  geminiApiKey: "",
+  murfApiKey: "",
+  fishApiKey: "",
+  openRouterApiKey: "",
+  openRouterModel: "recursive/flint-v1.0:free",
+  llmProvider: "openrouter" as "openrouter" | "chatjimmy" | "gemini",
+  ttsProvider: "fish-audio" as const,
+  rjStyle: "sarcastic",
+  commentaryLength: "short",
+  voiceId: "ba1a38946dea44609fc4a8fe6113ed88",
+  voiceStyle: "Promo",
+  includeHistory: false,
+  includeComments: false,
+  autoStart: false,
+  volumeDucking: 50,
+  hostName: "Alexis",
+  radioStation: "97.7 Youtube FM",
+};
+
+// Get stored API settings with defaults
 const getAPISettings = async () => {
-  return await chrome.storage.sync.get();
+  const stored = await chrome.storage.sync.get();
+  return { ...DEFAULT_SETTINGS, ...stored };
 };
 
 const stylePrompts = {
@@ -29,33 +50,42 @@ function generateRJPrompt(
   scriptHistory: string | null,
   comments: string | null,
   currentSonglyrics: string | null,
-  hostName: string,
-  radioStation: string
-) {
+  hostName?: string,
+  radioStation?: string
+): { systemPrompt: string; currentTask: string } {
   const basePrompt = stylePrompts[style] || stylePrompts.energetic;
   const lengthGuide = lengthGuides[length] || lengthGuides.medium;
 
-  const radioInfo = `Radio station: ${radioStation}
-  Host name: ${hostName}`;
+  const resolvedHostName = hostName || DEFAULT_SETTINGS.hostName;
+  const resolvedRadioStation = radioStation || DEFAULT_SETTINGS.radioStation;
 
-  return `${basePrompt} ${lengthGuide} ${radioInfo}. 
+  const radioInfo = `Radio station: ${resolvedRadioStation}
+Host name: ${resolvedHostName}`;
 
-${scriptHistory && "Here's some of your previous commentary: \n" + scriptHistory
-    }
-${comments && "Here are some comments from viewers: \n" + comments}
-
-Current song: "${currentSong}"
-
-${currentSonglyrics ? `Current song Lyrics: ${currentSonglyrics}` : ""}
-
-${nextSong ? `Next Song: "${nextSong}"` : ""}
+  const systemPrompt = `${basePrompt} ${lengthGuide}. ${radioInfo}.
 
 Important guidelines:
-AVOID using special characters that are not detected by TTS in the commentary, your output will be used to generate audio.
-AVOID saying Alright and Okay okay or similar phrases at the begining. Cook up some new intros
-CREATE engaging commentary that connects with listeners. Be natural, enthusiastic, and add personality. Don't read the song titles - make it conversational and fun!
-ONLY respond with the commentary text, do not include any additional instructions or explanations.
-`;
+- AVOID using special characters that are not detected by TTS in the commentary, your output will be used to generate audio.
+- AVOID expressions in brackets or parentheses.
+- AVOID saying Alright and Okay okay or similar phrases at the beginning. Cook up new intros.
+- CREATE engaging commentary that connects with listeners. Be natural, enthusiastic, and add personality. Don't read the song titles - make it conversational and fun!
+- ONLY respond with the commentary text, do not include any additional instructions or explanations.`.trim();
+
+  let currentTask = `Current song: "${currentSong}"`;
+  if (currentSonglyrics) {
+    currentTask += `\nCurrent song Lyrics: ${currentSonglyrics}`;
+  }
+  if (nextSong) {
+    currentTask += `\nUpcoming Song: "${nextSong}"`;
+  }
+  if (comments) {
+    currentTask += `\nViewer comments: ${comments}`;
+  }
+  if (scriptHistory) {
+    currentTask += `\nPrevious commentary history:\n${scriptHistory}`;
+  }
+
+  return { systemPrompt, currentTask };
 }
 
 // Call Gemini API with error handling
@@ -102,17 +132,50 @@ async function callGeminiAPI(prompt: string, apiKey: string) {
 }
 
 // Call ChatJimmy API with error handling
-async function callChatJimmyAPI(prompt: string) {
+async function callChatJimmyAPI(
+  systemPromptOrObj: string | { systemPrompt: string; currentTask: string },
+  currentTaskArg?: string
+) {
+  let systemPrompt: string;
+  let currentTask: string;
+
+  if (typeof systemPromptOrObj === "object") {
+    systemPrompt = systemPromptOrObj.systemPrompt;
+    currentTask = systemPromptOrObj.currentTask;
+  } else if (currentTaskArg !== undefined) {
+    systemPrompt = systemPromptOrObj;
+    currentTask = currentTaskArg;
+  } else {
+    systemPrompt = systemPromptOrObj;
+    currentTask = systemPromptOrObj;
+  }
+
   const payload = {
     messages: [
-      {
-        role: "system",
-        content: "Generate commentary without expressions in the brackets",
-      },
+      { role: "system", content: systemPrompt },
+      // {
+      //   role: "user",
+      //   content: `Previous: "Hello" by Adele\nNext: "Levitating" by Dua Lipa`,
+      // },
+      // {
+      //   role: "assistant",
+      //   content:
+      //     "Adele keeping it deep with Hello. Now let's pick up the pace, here is Dua Lipa turning up the heat with Levitating!",
+      // },
+      // {
+      //   role: "user",
+      //   content: `Previous: "Hotel California" by Eagles\nNext: "Humble" by Kendrick Lamar`,
+      // },
+      // {
+      //   role: "assistant",
+      //   content:
+      //     "That was the legendary Eagles. We're switching lanes completely now—turn your volume up for Kendrick Lamar.",
+      // },
+      { role: "user", content: currentTask },
     ],
     chatOptions: {
       selectedModel: "llama3.1-8B",
-      systemPrompt: prompt,
+      systemPrompt: systemPrompt,
       topK: 2,
     },
     attachment: null,
@@ -279,11 +342,88 @@ async function callLyricsAPI(query: string) {
   });
 }
 
+// Call OpenRouter API with error handling
+async function callOpenRouterAPI(
+  systemPrompt: string,
+  currentTask: string,
+  apiKey: string,
+  model?: string
+): Promise<string> {
+  if (!apiKey) {
+    throw new Error(
+      "OpenRouter API key not configured. Please add it in extension settings."
+    );
+  }
+
+  const messages = [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: currentTask },
+  ];
+
+  return new Promise<string>((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      {
+        action: "callOpenRouter",
+        apiKey,
+        model: model || "recursive/flint-v1.0:free",
+        messages,
+      },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          return reject(new Error(chrome.runtime.lastError.message));
+        }
+
+        if (!response || !response.success) {
+          return reject(
+            new Error(response?.error || "Failed to call OpenRouter API")
+          );
+        }
+
+        resolve(
+          response.data
+            .trim()
+            .replace(/^"|"$/g, "")
+            .replace(/\\n/g, "\n")
+            .trim()
+        );
+      }
+    );
+  });
+}
+
+// Unified callLLM router based on settings.llmProvider
+async function callLLM(
+  systemPrompt: string,
+  currentTask: string,
+  settings?: any
+): Promise<string> {
+  const currentSettings = settings || (await getAPISettings());
+  const provider = currentSettings.llmProvider || "openrouter";
+
+  if (provider === "openrouter") {
+    return callOpenRouterAPI(
+      systemPrompt,
+      currentTask,
+      currentSettings.openRouterApiKey,
+      currentSettings.openRouterModel
+    );
+  } else if (provider === "gemini") {
+    return callGeminiAPI(
+      `${systemPrompt}\n\n${currentTask}`,
+      currentSettings.geminiApiKey
+    );
+  } else {
+    return callChatJimmyAPI(systemPrompt, currentTask);
+  }
+}
+
 const APIUtils = {
   callMurfAPI,
   callFishAudioAPI,
   callGeminiAPI,
   callChatJimmyAPI,
+  callOpenRouterAPI,
+  callLLM,
   callLyricsAPI,
   logCommentary,
   getAPISettings,

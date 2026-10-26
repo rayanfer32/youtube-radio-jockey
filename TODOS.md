@@ -1,0 +1,2 @@
+- [x] Rehaul the UI using impeccable and aesthetic UI/UX patterns (Native Instruments Komplete broadcast hardware UI).
+- [x] Update the readme with all the features 

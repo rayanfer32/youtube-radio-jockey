@@ -1,20 +1,28 @@
 // Background script for handling extension lifecycle and API management
 import * as googleTTS from "google-tts-api";
 
-chrome.runtime.onInstalled.addListener(() => {
-  console.log("YouTube RJ Mode extension installed");
+chrome.runtime.onInstalled.addListener(async (details) => {
+  console.log("YouTube RJ Mode extension event:", details.reason);
 
-  // Set default settings
+  // Preserve existing settings across reloads/updates; only fill in missing fields
+  const existing = await chrome.storage.sync.get();
   chrome.storage.sync.set({
-    commentaryLength: "short",
-    rjStyle: "sarcastic",
-    voiceGender: "male",
-    volumeDucking: 70,
-    darkMode: false,
-    autoStart: false,
-    ttsProvider: "fish-audio",
-    fishApiKey: "",
-    voiceId: "ba1a38946dea44609fc4a8fe6113ed88",
+    commentaryLength: existing.commentaryLength ?? "short",
+    rjStyle: existing.rjStyle ?? "sarcastic",
+    voiceGender: existing.voiceGender ?? "male",
+    volumeDucking: existing.volumeDucking ?? 70,
+    darkMode: existing.darkMode ?? false,
+    autoStart: existing.autoStart ?? false,
+    ttsProvider: existing.ttsProvider ?? "fish-audio",
+    fishApiKey: existing.fishApiKey ?? "",
+    geminiApiKey: existing.geminiApiKey ?? "",
+    murfApiKey: existing.murfApiKey ?? "",
+    voiceId: existing.voiceId ?? "ba1a38946dea44609fc4a8fe6113ed88",
+    hostName: existing.hostName ?? "Alexis",
+    radioStation: existing.radioStation ?? "97.7 Youtube FM",
+    llmProvider: existing.llmProvider ?? "openrouter",
+    openRouterApiKey: existing.openRouterApiKey ?? "",
+    openRouterModel: existing.openRouterModel ?? "recursive/flint-v1.0:free",
   });
 });
 
@@ -194,6 +202,39 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
         const base64 = btoa(binary);
         sendResponse({ success: true, audioBase64: base64 });
+      })
+      .catch((error) => sendResponse({ success: false, error: error.message }));
+    return true;
+  } else if (request.action === "callOpenRouter") {
+    const { apiKey, model, messages } = request;
+    fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+        "HTTP-Referer": "https://youtube-rj-mode.extension",
+        "X-Title": "YouTube RJ Mode",
+      },
+      body: JSON.stringify({
+        model: model || "recursive/flint-v1.0:free",
+        messages: messages,
+      }),
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => "");
+          throw new Error(
+            `OpenRouter API error: ${response.status} - ${errorText}`
+          );
+        }
+        return response.json();
+      })
+      .then((data) => {
+        const content = data.choices?.[0]?.message?.content;
+        if (!content) {
+          throw new Error("No response text returned by OpenRouter model");
+        }
+        sendResponse({ success: true, data: content });
       })
       .catch((error) => sendResponse({ success: false, error: error.message }));
     return true;
