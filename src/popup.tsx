@@ -781,6 +781,57 @@ export default function Popup() {
                   </div>
                 </div>
               </div>
+              {/* Fish Audio Key */}
+              <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase font-bold">FISH AUDIO API KEY (TTS)</span>
+                  <span className={`text-[11.5px] font-bold ${settings.fishApiKey ? "text-emerald-400" : "text-[#FF9E1B]"}`}>
+                    {settings.fishApiKey ? "● CONFIGURED" : "○ MISSING"}
+                  </span>
+                </div>
+                <div className="relative flex items-center">
+                  <input
+                    type={showKeys.fish ? "text" : "password"}
+                    value={settings.fishApiKey}
+                    onChange={(e) => setSettings({ ...settings, fishApiKey: e.target.value })}
+                    placeholder="Enter Fish Audio Key"
+                    className="w-full bg-[#08090A] border border-[#272B33] rounded px-3 py-2 text-[13px] text-slate-100 pr-10 focus:border-[#00D2C4] outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKeys({ ...showKeys, fish: !showKeys.fish })}
+                    className="absolute right-2.5 text-neutral-400 hover:text-slate-100 text-[18px] material-symbols-outlined cursor-pointer"
+                  >
+                    {showKeys.fish ? "visibility_off" : "visibility"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Murf Key */}
+              <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase font-bold">MURF.AI API KEY (TTS)</span>
+                  <span className={`text-[11.5px] font-bold ${settings.murfApiKey ? "text-emerald-400" : "text-neutral-500"}`}>
+                    {settings.murfApiKey ? "● CONFIGURED" : "○ OPTIONAL"}
+                  </span>
+                </div>
+                <div className="relative flex items-center">
+                  <input
+                    type={showKeys.murf ? "text" : "password"}
+                    value={settings.murfApiKey}
+                    onChange={(e) => setSettings({ ...settings, murfApiKey: e.target.value })}
+                    placeholder="Enter Murf Key (Optional)"
+                    className="w-full bg-[#08090A] border border-[#272B33] rounded px-3 py-2 text-[13px] text-slate-100 pr-10 focus:border-[#00D2C4] outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKeys({ ...showKeys, murf: !showKeys.murf })}
+                    className="absolute right-2.5 text-neutral-400 hover:text-slate-100 text-[18px] material-symbols-outlined cursor-pointer"
+                  >
+                    {showKeys.murf ? "visibility_off" : "visibility"}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -895,57 +946,6 @@ export default function Popup() {
                 </div>
               )}
 
-              {/* Fish Audio Key */}
-              <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed">
-                <div className="flex justify-between items-center mb-1.5">
-                  <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase font-bold">FISH AUDIO API KEY (TTS)</span>
-                  <span className={`text-[11.5px] font-bold ${settings.fishApiKey ? "text-emerald-400" : "text-[#FF9E1B]"}`}>
-                    {settings.fishApiKey ? "● CONFIGURED" : "○ MISSING"}
-                  </span>
-                </div>
-                <div className="relative flex items-center">
-                  <input
-                    type={showKeys.fish ? "text" : "password"}
-                    value={settings.fishApiKey}
-                    onChange={(e) => setSettings({ ...settings, fishApiKey: e.target.value })}
-                    placeholder="Enter Fish Audio Key"
-                    className="w-full bg-[#08090A] border border-[#272B33] rounded px-3 py-2 text-[13px] text-slate-100 pr-10 focus:border-[#00D2C4] outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowKeys({ ...showKeys, fish: !showKeys.fish })}
-                    className="absolute right-2.5 text-neutral-400 hover:text-slate-100 text-[18px] material-symbols-outlined cursor-pointer"
-                  >
-                    {showKeys.fish ? "visibility_off" : "visibility"}
-                  </button>
-                </div>
-              </div>
-
-              {/* Murf Key */}
-              <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed">
-                <div className="flex justify-between items-center mb-1.5">
-                  <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase font-bold">MURF.AI API KEY (TTS)</span>
-                  <span className={`text-[11.5px] font-bold ${settings.murfApiKey ? "text-emerald-400" : "text-neutral-500"}`}>
-                    {settings.murfApiKey ? "● CONFIGURED" : "○ OPTIONAL"}
-                  </span>
-                </div>
-                <div className="relative flex items-center">
-                  <input
-                    type={showKeys.murf ? "text" : "password"}
-                    value={settings.murfApiKey}
-                    onChange={(e) => setSettings({ ...settings, murfApiKey: e.target.value })}
-                    placeholder="Enter Murf Key (Optional)"
-                    className="w-full bg-[#08090A] border border-[#272B33] rounded px-3 py-2 text-[13px] text-slate-100 pr-10 focus:border-[#00D2C4] outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowKeys({ ...showKeys, murf: !showKeys.murf })}
-                    className="absolute right-2.5 text-neutral-400 hover:text-slate-100 text-[18px] material-symbols-outlined cursor-pointer"
-                  >
-                    {showKeys.murf ? "visibility_off" : "visibility"}
-                  </button>
-                </div>
-              </div>
             </div>
           )}
 
