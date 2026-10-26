@@ -225,6 +225,54 @@ export default function Popup() {
     }
   };
 
+  const triggerGenerateRJCommentary = async () => {
+    setIsTesting(true);
+    setTestResult("Dispatching generateRJCommentary to active YouTube tab...");
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab?.id) {
+        setTestResult("❌ No active tab found.");
+        return;
+      }
+      const response: any = await chrome.tabs.sendMessage(tab.id, {
+        action: "generateRJCommentary",
+      });
+      setTestResult(
+        response?.success
+          ? "✅ generateRJCommentary triggered on active tab."
+          : "❌ " + (response?.error || "Failed to trigger generateRJCommentary.")
+      );
+    } catch (e: any) {
+      setTestResult("❌ " + (e?.message || e));
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  const triggerPlayRJCommentary = async () => {
+    setIsTesting(true);
+    setTestResult("Dispatching playRJCommentary to active YouTube tab...");
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab?.id) {
+        setTestResult("❌ No active tab found.");
+        return;
+      }
+      const response: any = await chrome.tabs.sendMessage(tab.id, {
+        action: "playRJCommentary",
+      });
+      setTestResult(
+        response?.success
+          ? "✅ playRJCommentary triggered on active tab."
+          : "❌ " + (response?.error || "Failed to trigger playRJCommentary.")
+      );
+    } catch (e: any) {
+      setTestResult("❌ " + (e?.message || e));
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
   // Macro Knob Helpers
   const stylesList = ["sarcastic", "energetic", "chill", "professional"];
   const cycleStyle = () => {
@@ -926,6 +974,24 @@ export default function Popup() {
                   className="py-2.5 px-2 bg-[#1A1C20] hover:bg-[#252830] text-amber-300 border border-amber-500/40 rounded text-[12px] font-bold tracking-wider transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
                 >
                   TEST LLM
+                </button>
+              </div>
+
+              {/* RJ Commentary Triggers */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  onClick={triggerGenerateRJCommentary}
+                  disabled={isTesting}
+                  className="py-2.5 px-2 bg-[#1A1C20] hover:bg-[#252830] text-cyan-300 border border-cyan-500/40 rounded text-[12px] font-bold tracking-wider transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                >
+                  GENERATE RJ COMMENTARY
+                </button>
+                <button
+                  onClick={triggerPlayRJCommentary}
+                  disabled={isTesting}
+                  className="py-2.5 px-2 bg-[#1A1C20] hover:bg-[#252830] text-pink-300 border border-pink-500/40 rounded text-[12px] font-bold tracking-wider transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                >
+                  PLAY RJ COMMENTARY
                 </button>
               </div>
 

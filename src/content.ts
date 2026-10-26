@@ -384,6 +384,31 @@ class YouTubeRJMode {
   }
 }
 
+// Listen for diagnostics triggers from the extension popup
+chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+  if (
+    request?.action === "generateRJCommentary" ||
+    request?.action === "playRJCommentary"
+  ) {
+    const rj = (window as any).youtubeRJ;
+    if (!rj) {
+      sendResponse({ success: false, error: "RJ instance not available on this page" });
+      return false;
+    }
+    const fn =
+      request.action === "generateRJCommentary"
+        ? rj.generateRJCommentary.bind(rj)
+        : rj.playRJCommentary.bind(rj);
+    fn()
+      .then(() => sendResponse({ success: true }))
+      .catch((err: any) =>
+        sendResponse({ success: false, error: err?.message || String(err) })
+      );
+    return true;
+  }
+  return false;
+});
+
 // Initialize when page loads
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
