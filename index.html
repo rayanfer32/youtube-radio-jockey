@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="YouTube Radio Jockey (RJ Mode) — transform your YouTube music sessions into a live, personalized FM radio station with an intelligent AI Radio Jockey." />
+  <title>YouTube Radio Jockey (RJ Mode) — AI FM Radio for YouTube</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <style>
+    :root {
+      --bg: #08090b;
+      --bg-2: #0c0e12;
+      --surface: #101318;
+      --card: #14181f;
+      --card-2: #1a1f27;
+      --border: #232933;
+      --border-2: #2d3440;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --dim: #64748b;
+      --cyan: #00d2c4;
+      --cyan-2: #38fdf1;
+      --amber: #ff9e1b;
+      --red: #ff5c5c;
+      --green: #3dd68c;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      scroll-behavior: smooth;
+    }
+    body {
+      background:
+        radial-gradient(1200px 600px at 80% -10%, rgba(0,210,196,0.08), transparent 60%),
+        radial-gradient(900px 500px at -10% 20%, rgba(255,158,27,0.05), transparent 60%),
+        var(--bg);
+      min-height: 100vh;
+    }
+    .font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+    .container { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+    a { color: inherit; text-decoration: none; }
+
+    /* Nav */
+    nav.top {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(14px);
+      background: rgba(8,9,11,0.72);
+      border-bottom: 1px solid var(--border);
+    }
+    nav.top .bar { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: 0.02em; }
+    .logo-mark {
+      width: 34px; height: 34px; border-radius: 8px;
+      background: linear-gradient(135deg, #1a1f27, #0c0e12);
+      border: 1px solid var(--border-2);
+      display: grid; place-items: center;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.6);
+    }
+    .logo-mark .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
+    .nav-links { display: flex; gap: 6px; align-items: center; }
+    .nav-links a { padding: 8px 14px; border-radius: 8px; color: var(--muted); font-size: 14px; font-weight: 500; transition: all .15s; }
+    .nav-links a:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 18px; border-radius: 10px; font-weight: 600; font-size: 14px;
+      border: 1px solid var(--border-2); background: var(--card); color: var(--text);
+      cursor: pointer; transition: all .15s; font-family: inherit;
+    }
+    .btn:hover { background: var(--card-2); border-color: var(--cyan); }
+    .btn.primary {
+      background: linear-gradient(135deg, var(--cyan), #00a89d);
+      color: #04100f; border-color: transparent;
+      box-shadow: 0 0 24px rgba(0,210,196,0.35);
+    }
+    .btn.primary:hover { filter: brightness(1.08); box-shadow: 0 0 32px rgba(0,210,196,0.5); }
+    .btn.ghost { background: transparent; }
+    .material-symbols-outlined { font-size: 20px; line-height: 1; vertical-align: middle; }
+
+    /* Hero */
+    .hero { padding: 72px 0 40px; }
+    .hero-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: center; }
+    @media (max-width: 900px) { .hero-grid { grid-template-columns: 1fr; gap: 32px; } }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 12px; border-radius: 999px;
+      background: rgba(0,210,196,0.08); border: 1px solid rgba(0,210,196,0.25);
+      color: var(--cyan); font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .eyebrow .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 8px var(--cyan); animation: pulse 1.6s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1);} 50% { opacity: .5; transform: scale(1.4);} }
+    h1 {
+      font-size: clamp(36px, 5vw, 60px); line-height: 1.05; margin: 20px 0 16px;
+      letter-spacing: -0.02em; font-weight: 700;
+    }
+    h1 .accent { color: var(--cyan); }
+    .hero-sub { font-size: 18px; color: var(--muted); line-height: 1.6; max-width: 560px; }
+    .hero-cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
+    .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border-radius: 8px;
+      background: var(--card); border: 1px solid var(--border);
+      font-size: 12px; font-weight: 600; color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .badge img { height: 18px; }
+    .hero-image {
+      position: relative; border-radius: 16px; overflow: hidden;
+      border: 1px solid var(--border-2);
+      box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,210,196,0.1);
+      background: var(--card);
+    }
+    .hero-image img { display: block; width: 100%; height: auto; }
+    .hero-image .tag {
+      position: absolute; top: 14px; left: 14px;
+      padding: 6px 10px; border-radius: 6px;
+      background: rgba(8,9,11,0.8); border: 1px solid var(--border-2);
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--cyan);
+      backdrop-filter: blur(8px);
+    }
+
+    /* Sections */
+    section { padding: 64px 0; }
+    .section-head { max-width: 720px; margin-bottom: 40px; }
+    .section-eyebrow { color: var(--cyan); font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
+    h2 { font-size: clamp(28px, 3.5vw, 40px); line-height: 1.15; margin: 10px 0 12px; letter-spacing: -0.01em; }
+    .section-sub { color: var(--muted); font-size: 17px; line-height: 1.6; }
+
+    /* Feature cards */
+    .grid { display: grid; gap: 16px; }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid-2 { grid-template-columns: repeat(2, 1fr); }
+    .grid-4 { grid-template-columns: repeat(4, 1fr); }
+    @media (max-width: 900px) { .grid-3, .grid-4 { grid-template-columns: repeat(2,1fr); } }
+    @media (max-width: 600px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+    .card {
+      background: linear-gradient(180deg, var(--card), var(--surface));
+      border: 1px solid var(--border);
+      border-radius: 14px; padding: 22px;
+      transition: all .2s; position: relative; overflow: hidden;
+    }
+    .card:hover { border-color: var(--border-2); transform: translateY(-2px); }
+    .card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0,210,196,0.4), transparent);
+      opacity: 0; transition: opacity .2s;
+    }
+    .card:hover::before { opacity: 1; }
+    .card-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: rgba(0,210,196,0.08); border: 1px solid rgba(0,210,196,0.2);
+      display: grid; place-items: center; color: var(--cyan); margin-bottom: 14px;
+    }
+    .card h3 { font-size: 17px; margin: 0 0 6px; font-weight: 600; }
+    .card p { color: var(--muted); font-size: 14px; line-height: 1.6; margin: 0; }
+    .card ul { margin: 10px 0 0; padding-left: 18px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+    .card ul li::marker { color: var(--cyan); }
+
+    /* Highlight list */
+    .hl { display: flex; gap: 14px; align-items: flex-start; padding: 16px 0; border-bottom: 1px solid var(--border); }
+    .hl:last-child { border-bottom: none; }
+    .hl .ic { width: 36px; height: 36px; border-radius: 8px; background: rgba(0,210,196,0.08); border: 1px solid rgba(0,210,196,0.2); display: grid; place-items: center; color: var(--cyan); flex-shrink: 0; }
+    .hl h4 { margin: 0 0 4px; font-size: 16px; }
+    .hl p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+
+    /* Steps */
+    .steps { counter-reset: step; }
+    .step { display: grid; grid-template-columns: 44px 1fr; gap: 18px; padding: 18px 0; border-bottom: 1px solid var(--border); }
+    .step:last-child { border-bottom: none; }
+    .step-num {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: var(--card); border: 1px solid var(--border-2);
+      display: grid; place-items: center;
+      font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--cyan);
+      font-size: 16px;
+    }
+    .step h4 { margin: 0 0 6px; font-size: 16px; }
+    .step p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+    .step code {
+      display: block; margin-top: 8px; padding: 10px 12px; border-radius: 8px;
+      background: #050607; border: 1px solid var(--border);
+      font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--cyan-2);
+      white-space: pre-wrap; word-break: break-all;
+    }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { background: var(--surface); color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; font-family: 'JetBrains Mono', monospace; }
+    tr:last-child td { border-bottom: none; }
+    td strong { color: var(--text); }
+    td a { color: var(--cyan); }
+    td a:hover { text-decoration: underline; }
+    .req { font-size: 11px; padding: 3px 8px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+    .req.opt { background: rgba(61,214,140,0.1); color: var(--green); border: 1px solid rgba(61,214,140,0.25); }
+    .req.rec { background: rgba(255,158,27,0.1); color: var(--amber); border: 1px solid rgba(255,158,27,0.25); }
+
+    /* Persona pills */
+    .pills { display: flex; flex-wrap: wrap; gap: 10px; }
+    .pill {
+      padding: 10px 14px; border-radius: 10px;
+      background: var(--card); border: 1px solid var(--border);
+      font-size: 13px; font-weight: 600;
+    }
+    .pill .tag { display: block; margin-top: 4px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--cyan); font-weight: 500; }
+
+    /* Module bank */
+    .modules { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    @media (max-width: 700px) { .modules { grid-template-columns: repeat(2,1fr); } }
+    .module {
+      padding: 16px; border-radius: 12px;
+      background: var(--card); border: 1px solid var(--border);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .module .name { color: var(--cyan); font-weight: 700; font-size: 13px; margin-bottom: 6px; }
+    .module .desc { color: var(--muted); font-size: 12px; line-height: 1.5; font-family: 'Space Grotesk', sans-serif; }
+
+    /* CTA banner */
+    .banner {
+      margin: 24px 0; padding: 40px 32px; border-radius: 20px;
+      background: linear-gradient(135deg, rgba(0,210,196,0.12), rgba(255,158,27,0.06));
+      border: 1px solid rgba(0,210,196,0.25);
+      display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap;
+    }
+    .banner h3 { margin: 0 0 6px; font-size: 24px; }
+    .banner p { margin: 0; color: var(--muted); }
+
+    /* Footer */
+    footer { padding: 40px 0 32px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; }
+    footer .row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+    footer a { color: var(--cyan); }
+    footer .links { display: flex; gap: 18px; }
+
+    /* Utility */
+    .muted { color: var(--muted); }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .mt-1 { margin-top: 4px; }
+    .divider { height: 1px; background: var(--border); margin: 24px 0; }
+  </style>
+</head>
+<body>
+  <nav class="top">
+    <div class="container bar">
+      <div class="logo">
+        <div class="logo-mark"><div class="dot"></div></div>
+        <span>YouTube <span style="color:var(--cyan)">RJ Mode</span></span>
+      </div>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#install">Install</a>
+        <a href="#apis">APIs</a>
+        <a href="https://github.com/rayanfer32/youtube-radio-jockey" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero">
+      <div class="container hero-grid">
+        <div>
+          <div class="eyebrow"><span class="pulse"></span> Live AI FM Radio for YouTube</div>
+          <h1>Turn your YouTube playlist into a <span class="accent">live radio station</span>.</h1>
+          <p class="hero-sub">YouTube Radio Jockey listens along to your playlists and acts as your live radio host — introducing upcoming songs, commenting on lyrics and artist trivia, reading top YouTube comments, and smoothly ducking music volume like real broadcast hardware.</p>
+          <div class="hero-cta">
+            <a class="btn primary" href="https://github.com/rayanfer32/youtube-radio-jockey/archive/refs/heads/main.zip">
+              <span class="material-symbols-outlined">download</span> Download ZIP
+            </a>
+            <a class="btn" href="https://github.com/rayanfer32/youtube-radio-jockey" target="_blank" rel="noopener">
+              <span class="material-symbols-outlined">code</span> View on GitHub
+            </a>
+          </div>
+          <div class="badges">
+            <span class="badge">TypeScript</span>
+            <span class="badge">Bun</span>
+            <span class="badge">Chrome Extension · MV3</span>
+            <span class="badge">NI Komplete UI</span>
+          </div>
+        </div>
+        <div class="hero-image">
+          <span class="tag">● ON AIR</span>
+          <img src="demo.png" alt="YouTube RJ Extension running on YouTube" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Highlights -->
+    <section id="features">
+      <div class="container">
+        <div class="section-head">
+          <div class="section-eyebrow">// Highlights & Key Features</div>
+          <h2>Built like a broadcast desk.</h2>
+          <p class="section-sub">A hardware-inspired control surface with rotary encoders, Maschine-style switches, and real-time telemetry — powering an AI host that never runs out of things to say.</p>
+        </div>
+
+        <div class="grid grid-2" style="margin-bottom:24px;">
+          <div class="card">
+            <div class="card-icon"><span class="material-symbols-outlined">mic</span></div>
+            <h3>Intelligent AI Radio Host (RJ)</h3>
+            <ul>
+              <li>Seamless playlist flow — bridges songs by analyzing the current track and teasing the upcoming one.</li>
+              <li>Smart pre-buffering — synthesizes commentary ~10s in, cached and ready to fire ~30s before track end.</li>
+              <li>Synced lyrics via LRCLIB to reference specific lines, themes, and tone.</li>
+              <li>Live YouTube comments scraped and mentioned for authentic banter.</li>
+              <li>Broadcast history memory avoids repetitive quips.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="card-icon"><span class="material-symbols-outlined">tune</span></div>
+            <h3>Native Instruments Komplete Deck</h3>
+            <ul>
+              <li>Anodized audio-rack aesthetic: rotary knobs with SVG LED gauges, tactile backlit switches, neon cyan telemetry.</li>
+              <li>Macro encoders for Style, Duration (25/35/50s), Audio Ducking (-6 to -24dB), TTS Engine.</li>
+              <li>Module selector bank: PERSONA, TTS, LLM, DIAGNOSTICS.</li>
+              <li>Floating YouTube in-page HUD with pulsing cyan LED ring and 3-bar equalizer.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="card-icon"><span class="material-symbols-outlined">graphic_eq</span></div>
+            <h3>Studio-Grade Audio Ducking</h3>
+            <ul>
+              <li>Web Audio API gain control fades YouTube playback down while the RJ speaks.</li>
+              <li>Gentle crossfade back to full volume when the host finishes.</li>
+              <li>User-defined ducking depth from -6dB to -24dB.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="card-icon"><span class="material-symbols-outlined">hub</span></div>
+            <h3>Multi-Engine LLM Architecture</h3>
+            <ul>
+              <li><strong>OpenRouter</strong> — custom models (flint, Llama 3.3, Claude, GPT-4o) with your own key.</li>
+              <li><strong>Google Gemini</strong> — ultra-fast Gemini 2.0 Flash.</li>
+              <li><strong>ChatJimmy</strong> — free, zero-setup Llama 3.1, no API key.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="card-icon"><span class="material-symbols-outlined">record_voice_over</span></div>
+            <h3>Multi-Provider Speech (TTS)</h3>
+            <ul>
+              <li><strong>Fish Audio</strong> — high-fidelity emotional zero-shot voice cloning.</li>
+              <li><strong>Murf.ai</strong> — studio voices with 7+ emotional presets.</li>
+              <li><strong>Google TTS</strong> — zero-config free fallback.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="card-icon"><span class="material-symbols-outlined">person</span></div>
+            <h3>RJ Persona Styles & Identity</h3>
+            <ul>
+              <li>Station callsign (e.g. <em>Non Stop Pop FM</em>, <em>Nightwave Plaza</em>).</li>
+              <li>Host profile name (e.g. <em>DJ Cara</em>, <em>Alexis</em>).</li>
+              <li>4 presets: ENERGETIC, CHILL, SARCASTIC, STUDIO PRO.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-icon"><span class="material-symbols-outlined">monitor_heart</span></div>
+          <h3>Live Diagnostics & Telemetry</h3>
+          <ul style="columns:2; column-gap:32px;">
+            <li>API handshake verification — test buttons for LRCLIB, TTS, and LLM.</li>
+            <li>Real-time system bus logs in the extension popup.</li>
+            <li>One-click export of all generated session scripts as structured JSON with timestamps and song metadata.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Personas -->
+    <section style="padding-top:0;">
+      <div class="container">
+        <div class="section-head">
+          <div class="section-eyebrow">// Persona Presets</div>
+          <h2>Four voices, one desk.</h2>
+        </div>
+        <div class="pills">
+          <div class="pill">ENERGETIC<span class="tag">+4dB DRIVE — high-energy hype</span></div>
+          <div class="pill">CHILL<span class="tag">WARMTH — late-night FM vibe</span></div>
+          <div class="pill">SARCASTIC<span class="tag">-2dB SHARP — dry wit & banter</span></div>
+          <div class="pill">STUDIO PRO<span class="tag">COMP BAL — professional broadcaster</span></div>
+        </div>
+
+        <div style="margin-top:36px;">
+          <div class="section-eyebrow" style="margin-bottom:12px;">// Module Selector Bank</div>
+          <div class="modules">
+            <div class="module"><div class="name">PERSONA</div><div class="desc">Station callsign, host profile, persona presets, logic switches.</div></div>
+            <div class="module"><div class="name">TTS</div><div class="desc">Voice synthesis provider, reference voices, emotion styles.</div></div>
+            <div class="module"><div class="name">LLM</div><div class="desc">Multi-provider LLM engine switcher and custom model selection.</div></div>
+            <div class="module"><div class="name">DIAGNOSTICS</div><div class="desc">Real-time system bus logs, API handshakes, JSON export.</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Install -->
+    <section id="install">
+      <div class="container">
+        <div class="section-head">
+          <div class="section-eyebrow">// Installation</div>
+          <h2>Up and on-air in minutes.</h2>
+          <p class="section-sub">No build required for end users — just load the prebuilt <code class="mono">dist</code> folder. Developers can build from source with Bun.</p>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-icon"><span class="material-symbols-outlined">rocket_launch</span></div>
+            <h3>Quick Install (No Coding)</h3>
+            <div class="steps">
+              <div class="step"><div class="step-num">1</div><div><h4>Download the latest ZIP</h4><p>Grab the source archive and extract it to a folder.</p><code>https://github.com/rayanfer32/youtube-radio-jockey/archive/refs/heads/main.zip</code></div></div>
+              <div class="step"><div class="step-num">2</div><div><h4>Open extensions page</h4><p>Go to <code class="mono">chrome://extensions/</code> in Chrome, Brave, Edge, or Opera.</p></div></div>
+              <div class="step"><div class="step-num">3</div><div><h4>Enable Developer mode</h4><p>Toggle in the top-right corner.</p></div></div>
+              <div class="step"><div class="step-num">4</div><div><h4>Load unpacked</h4><p>Click <em>Load unpacked</em> and select the <code class="mono">dist</code> folder inside the extracted folder.</p></div></div>
+              <div class="step"><div class="step-num">5</div><div><h4>You're live</h4><p>The YouTube Radio Jockey icon appears in your toolbar.</p></div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-icon"><span class="material-symbols-outlined">terminal</span></div>
+            <h3>Build From Source (Developers)</h3>
+            <div class="steps">
+              <div class="step"><div class="step-num">1</div><div><h4>Clone the repository</h4><code>git clone https://github.com/rayanfer32/youtube-radio-jockey.git\ncd youtube-radio-jockey</code></div></div>
+              <div class="step"><div class="step-num">2</div><div><h4>Install dependencies (Bun)</h4><code>bun install</code></div></div>
+              <div class="step"><div class="step-num">3</div><div><h4>Build the extension</h4><code>bun run build</code></div></div>
+              <div class="step"><div class="step-num">4</div><div><h4>Load into browser</h4><p>Navigate to <code class="mono">chrome://extensions/</code>, enable Developer mode, click <em>Load unpacked</em>, select <code class="mono">dist/</code>.</p></div></div>
+            </div>
+            <div class="divider"></div>
+            <div class="section-eyebrow" style="margin-bottom:8px;">// Development</div>
+            <div class="steps">
+              <div class="step"><div class="step-num">▸</div><div><h4>Watch mode</h4><code>bun dev</code></div></div>
+              <div class="step"><div class="step-num">▸</div><div><h4>Production build</h4><code>bun run build</code></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- APIs -->
+    <section id="apis">
+      <div class="container">
+        <div class="section-head">
+          <div class="section-eyebrow">// Recommended API Keys</div>
+          <h2>Zero keys to start. Add more as you go.</h2>
+          <p class="section-sub">ChatJimmy and Google TTS work out of the box with no API keys for quick testing.</p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Service</th><th>Purpose</th><th>Requirement</th><th>Link</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>OpenRouter</strong></td><td>Commentary Generation (Custom Models)</td><td><span class="req rec">Optional (Recommended)</span></td><td><a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a></td></tr>
+              <tr><td><strong>Google AI Studio</strong></td><td>Gemini 2.0 Flash Commentary</td><td><span class="req opt">Optional</span></td><td><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com</a></td></tr>
+              <tr><td><strong>Fish Audio</strong></td><td>Natural Emotional TTS</td><td><span class="req rec">Optional (Recommended)</span></td><td><a href="https://fish.audio/" target="_blank" rel="noopener">fish.audio</a></td></tr>
+              <tr><td><strong>Murf.ai</strong></td><td>Professional Studio Voices</td><td><span class="req opt">Optional</span></td><td><a href="https://murf.ai/api/api-keys" target="_blank" rel="noopener">murf.ai/api</a></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Playlists -->
+    <section style="padding-top:0;">
+      <div class="container">
+        <div class="section-head">
+          <div class="section-eyebrow">// Suggested Playlists</div>
+          <h2>Test the full radio experience.</h2>
+          <p class="section-sub">Try a continuous music playlist to hear automatic transitions and track-to-track commentary.</p>
+        </div>
+        <div class="grid grid-2">
+          <a class="card" href="https://www.youtube.com/watch?v=LjhCEhWiKXk&list=RDJGwWNGJdvx8&index=28" target="_blank" rel="noopener">
+            <div class="card-icon"><span class="material-symbols-outlined">playlist_play</span></div>
+            <h3>Pop & Hits Radio Mix</h3>
+            <p>Continuous pop hits — great for testing upbeat energetic commentary.</p>
+          </a>
+          <a class="card" href="https://www.youtube.com/watch?v=4xDzrJKXOOY&list=PLofht4PTcKYnaH8w5gkDC264ozRxBuBaW" target="_blank" rel="noopener">
+            <div class="card-icon"><span class="material-symbols-outlined">nightlight</span></div>
+            <h3>Synthwave / Lofi Chill Station</h3>
+            <p>Smooth late-night vibes — ideal for the CHILL persona.</p>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section style="padding-top:0;">
+      <div class="container">
+        <div class="banner">
+          <div>
+            <h3>Ready to go on air?</h3>
+            <p>Download the extension, load it unpacked, and open any YouTube music playlist.</p>
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <a class="btn primary" href="https://github.com/rayanfer32/youtube-radio-jockey/archive/refs/heads/main.zip"><span class="material-symbols-outlined">download</span> Download ZIP</a>
+            <a class="btn" href="https://github.com/rayanfer32/youtube-radio-jockey" target="_blank" rel="noopener"><span class="material-symbols-outlined">star</span> Star on GitHub</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container row">
+      <div>MIT License · Designed with audio hardware love for YouTube music listeners.</div>
+      <div class="links">
+        <a href="https://github.com/rayanfer32/youtube-radio-jockey" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/rayanfer32/youtube-radio-jockey/issues" target="_blank" rel="noopener">Issues</a>
+        <a href="readme.md">Readme</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
