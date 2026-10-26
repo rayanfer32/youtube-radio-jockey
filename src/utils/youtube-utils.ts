@@ -13,13 +13,7 @@ const YouTubeUtils = {
 
   getCurrentVideoTitle() {
     if (isYouTubeMusic()) {
-      // Prefer the title shown in the player queue (current track)
-      const queueTitle = document
-        .querySelector("ytmusic-player-queue-item .song-title")
-        ?.textContent?.trim();
-      if (queueTitle) return queueTitle;
-
-      // Fallback: playlist item matching the current video id
+      // Prefer the playlist item matching the current video id
       const vid = this.extractVideoId();
       if (vid) {
         const items = Array.from(
@@ -33,6 +27,12 @@ const YouTubeUtils = {
           ?.textContent?.trim();
         if (title) return title;
       }
+
+      // Fallback: title shown in the player queue (current track)
+      const queueTitle = document
+        .querySelector("ytmusic-player-queue-item .song-title")
+        ?.textContent?.trim();
+      if (queueTitle) return queueTitle;
 
       // Last resort: player title link
       return (
