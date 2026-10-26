@@ -704,6 +704,46 @@ export default function Popup() {
           {/* TAB 2: TTS */}
           {activeTab === "TTS" && (
             <div className="space-y-3 font-mono">
+              {/* TTS Engine Switcher */}
+              <div>
+                <span className="text-[12px] text-neutral-400 tracking-widest uppercase mb-1.5 block font-bold">
+                  TTS SYNTHESIS ENGINE
+                </span>
+                <div className="grid grid-cols-3 gap-2.5">
+                  {[
+                    { id: "fish-audio" as const, name: "FISH AUDIO", sub: "Neural S2.1" },
+                    { id: "murf" as const, name: "MURF.AI", sub: "Studio Voices" },
+                    { id: "google-tts" as const, name: "GOOGLE TTS", sub: "Web Speech" },
+                  ].map((eng) => (
+                    <button
+                      key={eng.id}
+                      type="button"
+                      onClick={() =>
+                        setSettings({
+                          ...settings,
+                          ttsProvider: eng.id,
+                          voiceId:
+                            eng.id === "fish-audio"
+                              ? "ba1a38946dea44609fc4a8fe6113ed88"
+                              : eng.id === "murf"
+                                ? "en-US-natalie"
+                                : "en-US",
+                        })
+                      }
+                      className={`p-2.5 rounded text-left border transition-all cursor-pointer ${settings.ttsProvider === eng.id
+                        ? "bg-[#122827] border-[#00D2C4] glow-cyan-subtle"
+                        : "bg-[#0F1012] border-[#272B33] hover:border-neutral-700"
+                        }`}
+                    >
+                      <div className={`text-[12.5px] font-bold ${settings.ttsProvider === eng.id ? "text-[#00D2C4]" : "text-slate-100"}`}>
+                        {eng.name}
+                      </div>
+                      <div className="text-[11px] text-neutral-400 mt-0.5">{eng.sub}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Active Engine Readout (Controlled by Top Macro Knob 4) */}
               <div className="bg-[#0F1012] border border-[#272B33] rounded px-3 py-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
