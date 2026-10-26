@@ -824,6 +824,7 @@ export default function Popup() {
                 </div>
               </div>
               {/* Fish Audio Key */}
+              {settings.ttsProvider === "fish-audio" && (
               <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed">
                 <div className="flex justify-between items-center mb-1.5">
                   <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase font-bold">FISH AUDIO API KEY (TTS)</span>
@@ -848,6 +849,7 @@ export default function Popup() {
                   </button>
                 </div>
               </div>
+              )}
 
               {/* Murf Key */}
               {settings.ttsProvider === "murf" && (
