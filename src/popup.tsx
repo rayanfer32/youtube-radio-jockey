@@ -487,499 +487,482 @@ export default function Popup() {
           onScroll={checkScroll}
           className="p-3 pb-10 bg-[#181A1E] flex-1 rack-scrollbar"
         >
-        {/* TAB 1: PERSONA */}
-        {activeTab === "PERSONA" && (
-          <div className="space-y-3">
-            {/* Station & Host Identifiers */}
-            <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed">
-              <div className="text-[11.5px] font-mono text-neutral-400 tracking-widest uppercase mb-2 flex items-center justify-between font-bold">
-                <span>BROADCAST IDENTITY // FREQ LOCK</span>
-                <span className="text-[#00D2C4] font-bold">STATUS: OK</span>
-              </div>
-              <div className="grid grid-cols-2 gap-3 font-mono">
-                {/* Station Name */}
-                <div className="bg-[#08090A] border border-[#272B33] rounded px-3 py-2 flex flex-col justify-center">
-                  <span className="text-[11px] text-neutral-400 tracking-wider uppercase font-semibold">STATION CALLSIGN</span>
-                  {editingStation ? (
-                    <input
-                      type="text"
-                      value={settings.radioStation}
-                      autoFocus
-                      onBlur={() => setEditingStation(false)}
-                      onChange={(e) => setSettings({ ...settings, radioStation: e.target.value })}
-                      className="bg-transparent text-slate-100 font-bold text-[13.5px] tracking-wide outline-none border-b border-[#00D2C4] py-0.5"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-between mt-1">
-                      <span className="text-slate-100 font-bold text-[13.5px] tracking-wide truncate">
-                        {settings.radioStation}
-                      </span>
-                      <span
-                        onClick={() => setEditingStation(true)}
-                        className="material-symbols-outlined text-neutral-400 text-[16px] hover:text-[#00D2C4] cursor-pointer"
-                        title="Click to edit station callsign"
-                      >
-                        edit
-                      </span>
-                    </div>
-                  )}
+          {/* TAB 1: PERSONA */}
+          {activeTab === "PERSONA" && (
+            <div className="space-y-3">
+              {/* Station & Host Identifiers */}
+              <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed">
+                <div className="text-[11.5px] font-mono text-neutral-400 tracking-widest uppercase mb-2 flex items-center justify-between font-bold">
+                  <span>BROADCAST IDENTITY // FREQ LOCK</span>
+                  <span className="text-[#00D2C4] font-bold">STATUS: OK</span>
                 </div>
-
-                {/* Host Name */}
-                <div className="bg-[#08090A] border border-[#272B33] rounded px-3 py-2 flex flex-col justify-center">
-                  <span className="text-[11px] text-neutral-400 tracking-wider uppercase font-semibold">HOST PROFILE</span>
-                  {editingHost ? (
-                    <input
-                      type="text"
-                      value={settings.hostName}
-                      autoFocus
-                      onBlur={() => setEditingHost(false)}
-                      onChange={(e) => setSettings({ ...settings, hostName: e.target.value })}
-                      className="bg-transparent text-slate-100 font-bold text-[13.5px] tracking-wide outline-none border-b border-[#00D2C4] py-0.5"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-between mt-1">
-                      <span className="text-slate-100 font-bold text-[13.5px] tracking-wide truncate">
-                        {settings.hostName}
-                      </span>
-                      <span
-                        onClick={() => setEditingHost(true)}
-                        className="material-symbols-outlined text-neutral-400 text-[16px] hover:text-[#00D2C4] cursor-pointer"
-                        title="Click to edit host name"
-                      >
-                        edit
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Persona Style Presets */}
-            <div>
-              <div className="flex items-center justify-between mb-2 px-0.5">
-                <span className="text-[12px] font-mono tracking-widest uppercase text-neutral-400 font-bold">RJ PERSONA PRESETS</span>
-                <span className="text-[11px] font-mono text-neutral-400 font-semibold">SLOT A-D</span>
-              </div>
-              <div className="grid grid-cols-4 gap-2.5">
-                {[
-                  { id: "energetic", label: "ENERGETIC", sub: "+4dB DRIVE" },
-                  { id: "chill", label: "CHILL", sub: "WARMTH" },
-                  { id: "sarcastic", label: "SARCASTIC", sub: "-2dB SHARP" },
-                  { id: "professional", label: "STUDIO PRO", sub: "COMP BAL" },
-                ].map((preset) => {
-                  const isActive = settings.rjStyle.toLowerCase() === preset.id;
-                  return (
-                    <button
-                      key={preset.id}
-                      onClick={() => setSettings({ ...settings, rjStyle: preset.id })}
-                      className={`py-2 px-2 rounded text-center transition-all active:translate-y-0.5 relative cursor-pointer ${isActive
-                        ? "bg-[#122827] border border-[#00D2C4] glow-cyan-subtle"
-                        : "bg-[#1A1C20] hover:bg-[#22252B] border border-neutral-700/70 ni-metal-bevel"
-                        }`}
-                    >
-                      {isActive && (
-                        <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[#00D2C4] shadow-[0_0_4px_#00D2C4]"></div>
-                      )}
-                      <div className={`text-[12px] font-black tracking-wider ${isActive ? "text-[#00D2C4]" : "text-slate-200"}`}>
-                        {preset.label}
+                <div className="grid grid-cols-2 gap-3 font-mono">
+                  {/* Station Name */}
+                  <div className="bg-[#08090A] border border-[#272B33] rounded px-3 py-2 flex flex-col justify-center">
+                    <span className="text-[11px] text-neutral-400 tracking-wider uppercase font-semibold">STATION CALLSIGN</span>
+                    {editingStation ? (
+                      <input
+                        type="text"
+                        value={settings.radioStation}
+                        autoFocus
+                        onBlur={() => setEditingStation(false)}
+                        onChange={(e) => setSettings({ ...settings, radioStation: e.target.value })}
+                        className="bg-transparent text-slate-100 font-bold text-[13.5px] tracking-wide outline-none border-b border-[#00D2C4] py-0.5"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-slate-100 font-bold text-[13.5px] tracking-wide truncate">
+                          {settings.radioStation}
+                        </span>
+                        <span
+                          onClick={() => setEditingStation(true)}
+                          className="material-symbols-outlined text-neutral-400 text-[16px] hover:text-[#00D2C4] cursor-pointer"
+                          title="Click to edit station callsign"
+                        >
+                          edit
+                        </span>
                       </div>
-                      <div className={`text-[10.5px] font-mono mt-0.5 ${isActive ? "text-[#00D2C4] font-bold" : "text-neutral-400"}`}>
-                        {preset.sub}
+                    )}
+                  </div>
+
+                  {/* Host Name */}
+                  <div className="bg-[#08090A] border border-[#272B33] rounded px-3 py-2 flex flex-col justify-center">
+                    <span className="text-[11px] text-neutral-400 tracking-wider uppercase font-semibold">HOST PROFILE</span>
+                    {editingHost ? (
+                      <input
+                        type="text"
+                        value={settings.hostName}
+                        autoFocus
+                        onBlur={() => setEditingHost(false)}
+                        onChange={(e) => setSettings({ ...settings, hostName: e.target.value })}
+                        className="bg-transparent text-slate-100 font-bold text-[13.5px] tracking-wide outline-none border-b border-[#00D2C4] py-0.5"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-slate-100 font-bold text-[13.5px] tracking-wide truncate">
+                          {settings.hostName}
+                        </span>
+                        <span
+                          onClick={() => setEditingHost(true)}
+                          className="material-symbols-outlined text-neutral-400 text-[16px] hover:text-[#00D2C4] cursor-pointer"
+                          title="Click to edit host name"
+                        >
+                          edit
+                        </span>
                       </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Feature Switches (Maschine-style backlit hardware toggles) */}
-            <div>
-              <div className="flex items-center justify-between mb-2 px-0.5">
-                <span className="text-[12px] font-mono tracking-widest uppercase text-neutral-400 font-bold">HARDWARE LOGIC ROUTING</span>
-                <span className="text-[11px] font-mono text-neutral-400 font-semibold">LOGIC GATES</span>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-
-                {/* Switch 1: Comments */}
-                <div
-                  onClick={() => setSettings({ ...settings, includeComments: !settings.includeComments })}
-                  className="bg-[#0F1012] border border-[#272B33] rounded p-2.5 flex items-center justify-between cursor-pointer hover:border-neutral-600 transition-colors"
-                >
-                  <div>
-                    <div className="text-[12.5px] font-bold tracking-wider text-slate-100">COMMENTS</div>
-                    <div className={`text-[11px] font-mono mt-0.5 font-bold ${settings.includeComments ? "text-[#00D2C4]" : "text-neutral-500"}`}>
-                      {settings.includeComments ? "[ENGAGED]" : "[BYPASS]"}
-                    </div>
-                  </div>
-                  <div className="w-8 h-4.5 bg-neutral-900 border border-neutral-700 rounded-full p-0.5 flex items-center">
-                    <div className={`w-3.5 h-3.5 rounded-full transition-transform ${settings.includeComments ? "translate-x-3.5 bg-[#00D2C4] shadow-[0_0_6px_#00D2C4]" : "bg-neutral-600"}`}></div>
+                    )}
                   </div>
                 </div>
+              </div>
 
-                {/* Switch 2: History */}
-                <div
-                  onClick={() => setSettings({ ...settings, includeHistory: !settings.includeHistory })}
-                  className="bg-[#0F1012] border border-[#272B33] rounded p-2.5 flex items-center justify-between cursor-pointer hover:border-neutral-600 transition-colors"
-                >
-                  <div>
-                    <div className="text-[12.5px] font-bold tracking-wider text-slate-100">HISTORY</div>
-                    <div className={`text-[11px] font-mono mt-0.5 font-bold ${settings.includeHistory ? "text-[#FF9E1B]" : "text-neutral-500"}`}>
-                      {settings.includeHistory ? "[BUFFERED]" : "[BYPASS]"}
+              {/* Persona Style Presets */}
+              <div>
+                <div className="flex items-center justify-between mb-2 px-0.5">
+                  <span className="text-[12px] font-mono tracking-widest uppercase text-neutral-400 font-bold">RJ PERSONA PRESETS</span>
+                  <span className="text-[11px] font-mono text-neutral-400 font-semibold">SLOT A-D</span>
+                </div>
+                <div className="grid grid-cols-4 gap-2.5">
+                  {[
+                    { id: "energetic", label: "ENERGETIC", sub: "+4dB DRIVE" },
+                    { id: "chill", label: "CHILL", sub: "WARMTH" },
+                    { id: "sarcastic", label: "SARCASTIC", sub: "-2dB SHARP" },
+                    { id: "professional", label: "STUDIO PRO", sub: "COMP BAL" },
+                  ].map((preset) => {
+                    const isActive = settings.rjStyle.toLowerCase() === preset.id;
+                    return (
+                      <button
+                        key={preset.id}
+                        onClick={() => setSettings({ ...settings, rjStyle: preset.id })}
+                        className={`py-2 px-2 rounded text-center transition-all active:translate-y-0.5 relative cursor-pointer ${isActive
+                          ? "bg-[#122827] border border-[#00D2C4] glow-cyan-subtle"
+                          : "bg-[#1A1C20] hover:bg-[#22252B] border border-neutral-700/70 ni-metal-bevel"
+                          }`}
+                      >
+                        {isActive && (
+                          <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[#00D2C4] shadow-[0_0_4px_#00D2C4]"></div>
+                        )}
+                        <div className={`text-[12px] font-black tracking-wider ${isActive ? "text-[#00D2C4]" : "text-slate-200"}`}>
+                          {preset.label}
+                        </div>
+                        <div className={`text-[10.5px] font-mono mt-0.5 ${isActive ? "text-[#00D2C4] font-bold" : "text-neutral-400"}`}>
+                          {preset.sub}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Feature Switches (Maschine-style backlit hardware toggles) */}
+              <div>
+                <div className="flex items-center justify-between mb-2 px-0.5">
+                  <span className="text-[12px] font-mono tracking-widest uppercase text-neutral-400 font-bold">HARDWARE LOGIC ROUTING</span>
+                  <span className="text-[11px] font-mono text-neutral-400 font-semibold">LOGIC GATES</span>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+
+                  {/* Switch 1: Comments */}
+                  <div
+                    onClick={() => setSettings({ ...settings, includeComments: !settings.includeComments })}
+                    className="bg-[#0F1012] border border-[#272B33] rounded p-2.5 flex items-center justify-between cursor-pointer hover:border-neutral-600 transition-colors"
+                  >
+                    <div>
+                      <div className="text-[12.5px] font-bold tracking-wider text-slate-100">COMMENTS</div>
+                      <div className={`text-[11px] font-mono mt-0.5 font-bold ${settings.includeComments ? "text-[#00D2C4]" : "text-neutral-500"}`}>
+                        {settings.includeComments ? "[ENGAGED]" : "[BYPASS]"}
+                      </div>
+                    </div>
+                    <div className="w-8 h-4.5 bg-neutral-900 border border-neutral-700 rounded-full p-0.5 flex items-center">
+                      <div className={`w-3.5 h-3.5 rounded-full transition-transform ${settings.includeComments ? "translate-x-3.5 bg-[#00D2C4] shadow-[0_0_6px_#00D2C4]" : "bg-neutral-600"}`}></div>
                     </div>
                   </div>
-                  <div className="w-8 h-4.5 bg-neutral-900 border border-neutral-700 rounded-full p-0.5 flex items-center">
-                    <div className={`w-3.5 h-3.5 rounded-full transition-transform ${settings.includeHistory ? "translate-x-3.5 bg-[#FF9E1B] shadow-[0_0_6px_#FF9E1B]" : "bg-neutral-600"}`}></div>
-                  </div>
-                </div>
 
-                {/* Switch 3: Auto Start */}
-                <div
-                  onClick={() => setSettings({ ...settings, autoStart: !settings.autoStart })}
-                  className="bg-[#0F1012] border border-[#272B33] rounded p-2.5 flex items-center justify-between cursor-pointer hover:border-neutral-600 transition-colors"
-                >
-                  <div>
-                    <div className="text-[12.5px] font-bold tracking-wider text-slate-100">AUTO-PLAY</div>
-                    <div className={`text-[11px] font-mono mt-0.5 font-bold ${settings.autoStart ? "text-[#00D2C4]" : "text-neutral-500"}`}>
-                      {settings.autoStart ? "[ACTIVE]" : "[STANDBY]"}
+                  {/* Switch 2: History */}
+                  <div
+                    onClick={() => setSettings({ ...settings, includeHistory: !settings.includeHistory })}
+                    className="bg-[#0F1012] border border-[#272B33] rounded p-2.5 flex items-center justify-between cursor-pointer hover:border-neutral-600 transition-colors"
+                  >
+                    <div>
+                      <div className="text-[12.5px] font-bold tracking-wider text-slate-100">HISTORY</div>
+                      <div className={`text-[11px] font-mono mt-0.5 font-bold ${settings.includeHistory ? "text-[#FF9E1B]" : "text-neutral-500"}`}>
+                        {settings.includeHistory ? "[BUFFERED]" : "[BYPASS]"}
+                      </div>
+                    </div>
+                    <div className="w-8 h-4.5 bg-neutral-900 border border-neutral-700 rounded-full p-0.5 flex items-center">
+                      <div className={`w-3.5 h-3.5 rounded-full transition-transform ${settings.includeHistory ? "translate-x-3.5 bg-[#FF9E1B] shadow-[0_0_6px_#FF9E1B]" : "bg-neutral-600"}`}></div>
                     </div>
                   </div>
-                  <div className="w-8 h-4.5 bg-neutral-900 border border-neutral-700 rounded-full p-0.5 flex items-center">
-                    <div className={`w-3.5 h-3.5 rounded-full transition-transform ${settings.autoStart ? "translate-x-3.5 bg-[#00D2C4] shadow-[0_0_6px_#00D2C4]" : "bg-neutral-600"}`}></div>
+
+                  {/* Switch 3: Auto Start */}
+                  <div
+                    onClick={() => setSettings({ ...settings, autoStart: !settings.autoStart })}
+                    className="bg-[#0F1012] border border-[#272B33] rounded p-2.5 flex items-center justify-between cursor-pointer hover:border-neutral-600 transition-colors"
+                  >
+                    <div>
+                      <div className="text-[12.5px] font-bold tracking-wider text-slate-100">AUTO-PLAY</div>
+                      <div className={`text-[11px] font-mono mt-0.5 font-bold ${settings.autoStart ? "text-[#00D2C4]" : "text-neutral-500"}`}>
+                        {settings.autoStart ? "[ACTIVE]" : "[STANDBY]"}
+                      </div>
+                    </div>
+                    <div className="w-8 h-4.5 bg-neutral-900 border border-neutral-700 rounded-full p-0.5 flex items-center">
+                      <div className={`w-3.5 h-3.5 rounded-full transition-transform ${settings.autoStart ? "translate-x-3.5 bg-[#00D2C4] shadow-[0_0_6px_#00D2C4]" : "bg-neutral-600"}`}></div>
+                    </div>
                   </div>
+
                 </div>
-
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* TAB 2: TTS */}
-        {activeTab === "TTS" && (
-          <div className="space-y-3 font-mono">
-            {/* Active Engine Readout (Controlled by Top Macro Knob 4) */}
-            <div className="bg-[#0F1012] border border-[#272B33] rounded px-3 py-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#00D2C4] shadow-[0_0_5px_#00D2C4]"></span>
-                <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase font-semibold">ACTIVE ENGINE:</span>
-                <span className="text-[13px] text-[#00D2C4] font-black tracking-wider uppercase">
-                  {settings.ttsProvider === "fish-audio" ? "FISH AUDIO (Neural S2.1)" : settings.ttsProvider === "murf" ? "MURF.AI (Studio)" : "GOOGLE TTS (Web Speech)"}
-                </span>
-              </div>
-              <span className="text-[11px] text-neutral-400 font-mono tracking-tight font-bold">[MACRO 4]</span>
-            </div>
-
-            {/* Voice ID input */}
-            <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed">
-              <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase mb-1.5 block font-bold">
-                {settings.ttsProvider === "fish-audio" ? "FISH AUDIO REFERENCE ID" : "VOICE MODEL / CODE"}
-              </span>
-              <input
-                type="text"
-                value={settings.voiceId}
-                onChange={(e) => setSettings({ ...settings, voiceId: e.target.value })}
-                placeholder={
-                  settings.ttsProvider === "fish-audio"
-                    ? "ba1a38946dea44609fc4a8fe6113ed88"
-                    : "e.g., en-US-natalie"
-                }
-                className="w-full bg-[#08090A] border border-[#272B33] rounded px-3 py-2 text-[13px] text-slate-100 font-mono focus:border-[#00D2C4] outline-none"
-              />
-            </div>
-
-            {/* Voice Style (Murf) & Commentary Length Presets */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed flex flex-col justify-between">
-                <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase mb-1.5 block font-bold">MURF.AI VOICE STYLE</span>
-                <select
-                  value={settings.voiceStyle}
-                  onChange={(e) => setSettings({ ...settings, voiceStyle: e.target.value })}
-                  className="w-full bg-[#08090A] border border-[#272B33] rounded px-3 py-2 text-[12.5px] text-slate-100 outline-none"
-                >
-                  <option value="Promo">Promo (Energetic)</option>
-                  <option value="Conversational">Conversational</option>
-                  <option value="Newscast">Newscast</option>
-                  <option value="Friendly">Friendly</option>
-                  <option value="Luxury">Luxury</option>
-                  <option value="Sad">Sad</option>
-                  <option value="Angry">Angry</option>
-                </select>
-              </div>
-
-              <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed flex flex-col justify-between">
-                <div className="flex justify-between items-center mb-1.5">
-                  <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase font-bold">COMMENTARY LENGTH</span>
-                  <span className="text-[12px] text-[#00D2C4] font-bold">
-                    {settings.commentaryLength === "short" ? "25s" : settings.commentaryLength === "medium" ? "35s" : "50s"}
+          {/* TAB 2: TTS */}
+          {activeTab === "TTS" && (
+            <div className="space-y-3 font-mono">
+              {/* Active Engine Readout (Controlled by Top Macro Knob 4) */}
+              <div className="bg-[#0F1012] border border-[#272B33] rounded px-3 py-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#00D2C4] shadow-[0_0_5px_#00D2C4]"></span>
+                  <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase font-semibold">ACTIVE ENGINE:</span>
+                  <span className="text-[13px] text-[#00D2C4] font-black tracking-wider uppercase">
+                    {settings.ttsProvider === "fish-audio" ? "FISH AUDIO (Neural S2.1)" : settings.ttsProvider === "murf" ? "MURF.AI (Studio)" : "GOOGLE TTS (Web Speech)"}
                   </span>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <span className="text-[11px] text-neutral-400 font-mono tracking-tight font-bold">[MACRO 4]</span>
+              </div>
+
+              {/* Voice ID input */}
+              <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed">
+                <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase mb-1.5 block font-bold">
+                  {settings.ttsProvider === "fish-audio" ? "FISH AUDIO REFERENCE ID" : "VOICE MODEL / CODE"}
+                </span>
+                <input
+                  type="text"
+                  value={settings.voiceId}
+                  onChange={(e) => setSettings({ ...settings, voiceId: e.target.value })}
+                  placeholder={
+                    settings.ttsProvider === "fish-audio"
+                      ? "ba1a38946dea44609fc4a8fe6113ed88"
+                      : "e.g., en-US-natalie"
+                  }
+                  className="w-full bg-[#08090A] border border-[#272B33] rounded px-3 py-2 text-[13px] text-slate-100 font-mono focus:border-[#00D2C4] outline-none"
+                />
+              </div>
+
+              {/* Voice Style (Murf) & Commentary Length Presets */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed flex flex-col justify-between">
+                  <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase mb-1.5 block font-bold">MURF.AI VOICE STYLE</span>
+                  <select
+                    value={settings.voiceStyle}
+                    onChange={(e) => setSettings({ ...settings, voiceStyle: e.target.value })}
+                    className="w-full bg-[#08090A] border border-[#272B33] rounded px-3 py-2 text-[12.5px] text-slate-100 outline-none"
+                  >
+                    <option value="Promo">Promo (Energetic)</option>
+                    <option value="Conversational">Conversational</option>
+                    <option value="Newscast">Newscast</option>
+                    <option value="Friendly">Friendly</option>
+                    <option value="Luxury">Luxury</option>
+                    <option value="Sad">Sad</option>
+                    <option value="Angry">Angry</option>
+                  </select>
+                </div>
+
+                <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed flex flex-col justify-between">
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase font-bold">COMMENTARY LENGTH</span>
+                    <span className="text-[12px] text-[#00D2C4] font-bold">
+                      {settings.commentaryLength === "short" ? "25s" : settings.commentaryLength === "medium" ? "35s" : "50s"}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: "short", label: "25s" },
+                      { id: "medium", label: "35s" },
+                      { id: "long", label: "50s" },
+                    ].map((len) => (
+                      <button
+                        key={len.id}
+                        type="button"
+                        onClick={() => setSettings({ ...settings, commentaryLength: len.id })}
+                        className={`py-2 rounded text-[12px] font-bold border transition-all cursor-pointer ${settings.commentaryLength === len.id
+                          ? "bg-[#122827] border-[#00D2C4] text-[#00D2C4]"
+                          : "bg-[#08090A] border-[#272B33] text-neutral-300 hover:text-slate-100"
+                          }`}
+                      >
+                        {len.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: LLM */}
+          {activeTab === "LLM" && (
+            <div className="space-y-3 font-mono">
+              {/* LLM Engine Switcher */}
+              <div>
+                <span className="text-[12px] text-neutral-400 tracking-widest uppercase mb-1.5 block font-bold">
+                  LLM COMMENTARY ENGINE
+                </span>
+                <div className="grid grid-cols-3 gap-2.5">
                   {[
-                    { id: "short", label: "25s" },
-                    { id: "medium", label: "35s" },
-                    { id: "long", label: "50s" },
-                  ].map((len) => (
+                    { id: "openrouter" as const, name: "OPENROUTER", sub: "Custom Models" },
+                    { id: "chatjimmy" as const, name: "CHATJIMMY", sub: "Llama 3.1 Free" },
+                    { id: "gemini" as const, name: "GEMINI", sub: "Google AI Studio" },
+                  ].map((llm) => (
                     <button
-                      key={len.id}
+                      key={llm.id}
                       type="button"
-                      onClick={() => setSettings({ ...settings, commentaryLength: len.id })}
-                      className={`py-2 rounded text-[12px] font-bold border transition-all cursor-pointer ${settings.commentaryLength === len.id
-                        ? "bg-[#122827] border-[#00D2C4] text-[#00D2C4]"
-                        : "bg-[#08090A] border-[#272B33] text-neutral-300 hover:text-slate-100"
+                      onClick={() => setSettings({ ...settings, llmProvider: llm.id })}
+                      className={`p-2.5 rounded text-left border transition-all cursor-pointer ${settings.llmProvider === llm.id
+                        ? "bg-[#122827] border-[#00D2C4] glow-cyan-subtle"
+                        : "bg-[#0F1012] border-[#272B33] hover:border-neutral-700"
                         }`}
                     >
-                      {len.label}
+                      <div className={`text-[12.5px] font-bold ${settings.llmProvider === llm.id ? "text-[#00D2C4]" : "text-slate-100"}`}>
+                        {llm.name}
+                      </div>
+                      <div className="text-[11px] text-neutral-400 mt-0.5">{llm.sub}</div>
                     </button>
                   ))}
                 </div>
               </div>
-            </div>
-          </div>
-        )}
 
-        {/* TAB 3: LLM */}
-        {activeTab === "LLM" && (
-          <div className="space-y-3 font-mono">
-            {/* LLM Engine Switcher */}
-            <div>
-              <span className="text-[12px] text-neutral-400 tracking-widest uppercase mb-1.5 block font-bold">
-                LLM COMMENTARY ENGINE
-              </span>
-              <div className="grid grid-cols-3 gap-2.5">
-                {[
-                  { id: "openrouter" as const, name: "OPENROUTER", sub: "Custom Models" },
-                  { id: "chatjimmy" as const, name: "CHATJIMMY", sub: "Llama 3.1 Free" },
-                  { id: "gemini" as const, name: "GEMINI", sub: "Google AI Studio" },
-                ].map((llm) => (
-                  <button
-                    key={llm.id}
-                    type="button"
-                    onClick={() => setSettings({ ...settings, llmProvider: llm.id })}
-                    className={`p-2.5 rounded text-left border transition-all cursor-pointer ${settings.llmProvider === llm.id
-                        ? "bg-[#122827] border-[#00D2C4] glow-cyan-subtle"
-                        : "bg-[#0F1012] border-[#272B33] hover:border-neutral-700"
-                      }`}
-                  >
-                    <div className={`text-[12.5px] font-bold ${settings.llmProvider === llm.id ? "text-[#00D2C4]" : "text-slate-100"}`}>
-                      {llm.name}
+              {/* If OpenRouter selected: Key + Custom Model */}
+              {settings.llmProvider === "openrouter" && (
+                <>
+                  <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed">
+                    <div className="flex justify-between items-center mb-1.5">
+                      <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase font-bold">OPENROUTER API KEY</span>
+                      <span className={`text-[11.5px] font-bold ${settings.openRouterApiKey ? "text-emerald-400" : "text-[#FF9E1B]"}`}>
+                        {settings.openRouterApiKey ? "● CONFIGURED" : "○ MISSING"}
+                      </span>
                     </div>
-                    <div className="text-[11px] text-neutral-400 mt-0.5">{llm.sub}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
+                    <div className="relative flex items-center">
+                      <input
+                        type={showKeys.openrouter ? "text" : "password"}
+                        value={settings.openRouterApiKey}
+                        onChange={(e) => setSettings({ ...settings, openRouterApiKey: e.target.value })}
+                        placeholder="sk-or-v1-..."
+                        className="w-full bg-[#08090A] border border-[#272B33] rounded px-3 py-2 text-[13px] text-slate-100 pr-10 focus:border-[#00D2C4] outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowKeys({ ...showKeys, openrouter: !showKeys.openrouter })}
+                        className="absolute right-2.5 text-neutral-400 hover:text-slate-100 text-[18px] material-symbols-outlined cursor-pointer"
+                      >
+                        {showKeys.openrouter ? "visibility_off" : "visibility"}
+                      </button>
+                    </div>
+                  </div>
 
-            {/* If OpenRouter selected: Key + Custom Model */}
-            {settings.llmProvider === "openrouter" && (
-              <>
+                  <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed">
+                    <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase mb-1.5 block font-bold">OPENROUTER MODEL IDENTIFIER</span>
+                    <input
+                      type="text"
+                      value={settings.openRouterModel}
+                      onChange={(e) => setSettings({ ...settings, openRouterModel: e.target.value })}
+                      placeholder="recursive/flint-v1.0:free"
+                      className="w-full bg-[#08090A] border border-[#272B33] rounded px-3 py-2 text-[13px] text-slate-100 focus:border-[#00D2C4] outline-none"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* If Gemini selected: Key */}
+              {settings.llmProvider === "gemini" && (
                 <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed">
                   <div className="flex justify-between items-center mb-1.5">
-                    <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase font-bold">OPENROUTER API KEY</span>
-                    <span className={`text-[11.5px] font-bold ${settings.openRouterApiKey ? "text-emerald-400" : "text-[#FF9E1B]"}`}>
-                      {settings.openRouterApiKey ? "● CONFIGURED" : "○ MISSING"}
+                    <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase font-bold">GOOGLE GEMINI API KEY</span>
+                    <span className={`text-[11.5px] font-bold ${settings.geminiApiKey ? "text-emerald-400" : "text-[#FF9E1B]"}`}>
+                      {settings.geminiApiKey ? "● CONFIGURED" : "○ MISSING"}
                     </span>
                   </div>
                   <div className="relative flex items-center">
                     <input
-                      type={showKeys.openrouter ? "text" : "password"}
-                      value={settings.openRouterApiKey}
-                      onChange={(e) => setSettings({ ...settings, openRouterApiKey: e.target.value })}
-                      placeholder="sk-or-v1-..."
+                      type={showKeys.gemini ? "text" : "password"}
+                      value={settings.geminiApiKey}
+                      onChange={(e) => setSettings({ ...settings, geminiApiKey: e.target.value })}
+                      placeholder="AIzaSy..."
                       className="w-full bg-[#08090A] border border-[#272B33] rounded px-3 py-2 text-[13px] text-slate-100 pr-10 focus:border-[#00D2C4] outline-none"
                     />
                     <button
                       type="button"
-                      onClick={() => setShowKeys({ ...showKeys, openrouter: !showKeys.openrouter })}
+                      onClick={() => setShowKeys({ ...showKeys, gemini: !showKeys.gemini })}
                       className="absolute right-2.5 text-neutral-400 hover:text-slate-100 text-[18px] material-symbols-outlined cursor-pointer"
                     >
-                      {showKeys.openrouter ? "visibility_off" : "visibility"}
+                      {showKeys.gemini ? "visibility_off" : "visibility"}
                     </button>
                   </div>
                 </div>
+              )}
 
-                <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed">
-                  <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase mb-1.5 block font-bold">OPENROUTER MODEL IDENTIFIER</span>
-                  <input
-                    type="text"
-                    value={settings.openRouterModel}
-                    onChange={(e) => setSettings({ ...settings, openRouterModel: e.target.value })}
-                    placeholder="recursive/flint-v1.0:free"
-                    className="w-full bg-[#08090A] border border-[#272B33] rounded px-3 py-2 text-[13px] text-slate-100 focus:border-[#00D2C4] outline-none"
-                  />
+              {/* If ChatJimmy selected: info badge */}
+              {settings.llmProvider === "chatjimmy" && (
+                <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed flex items-center gap-2.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                  <span className="text-[12px] text-slate-200 font-semibold">
+                    Zero-config free Llama-3.1 engine running via ChatJimmy API.
+                  </span>
                 </div>
-              </>
-            )}
+              )}
 
-            {/* If Gemini selected: Key */}
-            {settings.llmProvider === "gemini" && (
+              {/* Fish Audio Key */}
               <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed">
                 <div className="flex justify-between items-center mb-1.5">
-                  <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase font-bold">GOOGLE GEMINI API KEY</span>
-                  <span className={`text-[11.5px] font-bold ${settings.geminiApiKey ? "text-emerald-400" : "text-[#FF9E1B]"}`}>
-                    {settings.geminiApiKey ? "● CONFIGURED" : "○ MISSING"}
+                  <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase font-bold">FISH AUDIO API KEY (TTS)</span>
+                  <span className={`text-[11.5px] font-bold ${settings.fishApiKey ? "text-emerald-400" : "text-[#FF9E1B]"}`}>
+                    {settings.fishApiKey ? "● CONFIGURED" : "○ MISSING"}
                   </span>
                 </div>
                 <div className="relative flex items-center">
                   <input
-                    type={showKeys.gemini ? "text" : "password"}
-                    value={settings.geminiApiKey}
-                    onChange={(e) => setSettings({ ...settings, geminiApiKey: e.target.value })}
-                    placeholder="AIzaSy..."
+                    type={showKeys.fish ? "text" : "password"}
+                    value={settings.fishApiKey}
+                    onChange={(e) => setSettings({ ...settings, fishApiKey: e.target.value })}
+                    placeholder="Enter Fish Audio Key"
                     className="w-full bg-[#08090A] border border-[#272B33] rounded px-3 py-2 text-[13px] text-slate-100 pr-10 focus:border-[#00D2C4] outline-none"
                   />
                   <button
                     type="button"
-                    onClick={() => setShowKeys({ ...showKeys, gemini: !showKeys.gemini })}
+                    onClick={() => setShowKeys({ ...showKeys, fish: !showKeys.fish })}
                     className="absolute right-2.5 text-neutral-400 hover:text-slate-100 text-[18px] material-symbols-outlined cursor-pointer"
                   >
-                    {showKeys.gemini ? "visibility_off" : "visibility"}
+                    {showKeys.fish ? "visibility_off" : "visibility"}
                   </button>
                 </div>
               </div>
-            )}
 
-            {/* If ChatJimmy selected: info badge */}
-            {settings.llmProvider === "chatjimmy" && (
-              <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed flex items-center gap-2.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                <span className="text-[12px] text-slate-200 font-semibold">
-                  Zero-config free Llama-3.1 engine running via ChatJimmy API.
-                </span>
+              {/* Murf Key */}
+              <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase font-bold">MURF.AI API KEY (TTS)</span>
+                  <span className={`text-[11.5px] font-bold ${settings.murfApiKey ? "text-emerald-400" : "text-neutral-500"}`}>
+                    {settings.murfApiKey ? "● CONFIGURED" : "○ OPTIONAL"}
+                  </span>
+                </div>
+                <div className="relative flex items-center">
+                  <input
+                    type={showKeys.murf ? "text" : "password"}
+                    value={settings.murfApiKey}
+                    onChange={(e) => setSettings({ ...settings, murfApiKey: e.target.value })}
+                    placeholder="Enter Murf Key (Optional)"
+                    className="w-full bg-[#08090A] border border-[#272B33] rounded px-3 py-2 text-[13px] text-slate-100 pr-10 focus:border-[#00D2C4] outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKeys({ ...showKeys, murf: !showKeys.murf })}
+                    className="absolute right-2.5 text-neutral-400 hover:text-slate-100 text-[18px] material-symbols-outlined cursor-pointer"
+                  >
+                    {showKeys.murf ? "visibility_off" : "visibility"}
+                  </button>
+                </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Fish Audio Key */}
-            <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed">
-              <div className="flex justify-between items-center mb-1.5">
-                <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase font-bold">FISH AUDIO API KEY (TTS)</span>
-                <span className={`text-[11.5px] font-bold ${settings.fishApiKey ? "text-emerald-400" : "text-[#FF9E1B]"}`}>
-                  {settings.fishApiKey ? "● CONFIGURED" : "○ MISSING"}
-                </span>
-              </div>
-              <div className="relative flex items-center">
-                <input
-                  type={showKeys.fish ? "text" : "password"}
-                  value={settings.fishApiKey}
-                  onChange={(e) => setSettings({ ...settings, fishApiKey: e.target.value })}
-                  placeholder="Enter Fish Audio Key"
-                  className="w-full bg-[#08090A] border border-[#272B33] rounded px-3 py-2 text-[13px] text-slate-100 pr-10 focus:border-[#00D2C4] outline-none"
-                />
+          {/* TAB 4: DIAGNOSTICS */}
+          {activeTab === "DIAGNOSTICS" && (
+            <div className="space-y-3 font-mono">
+              <div className="grid grid-cols-3 gap-2.5">
                 <button
-                  type="button"
-                  onClick={() => setShowKeys({ ...showKeys, fish: !showKeys.fish })}
-                  className="absolute right-2.5 text-neutral-400 hover:text-slate-100 text-[18px] material-symbols-outlined cursor-pointer"
+                  onClick={testLyrics}
+                  disabled={isTesting}
+                  className="py-2.5 px-2 bg-[#1A1C20] hover:bg-[#252830] text-purple-300 border border-purple-500/40 rounded text-[12px] font-bold tracking-wider transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
                 >
-                  {showKeys.fish ? "visibility_off" : "visibility"}
+                  TEST LYRICS
+                </button>
+                <button
+                  onClick={testTTS}
+                  disabled={isTesting}
+                  className="py-2.5 px-2 bg-[#1A1C20] hover:bg-[#252830] text-emerald-300 border border-emerald-500/40 rounded text-[12px] font-bold tracking-wider transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                >
+                  TEST TTS
+                </button>
+                <button
+                  onClick={testLLM}
+                  disabled={isTesting}
+                  className="py-2.5 px-2 bg-[#1A1C20] hover:bg-[#252830] text-amber-300 border border-amber-500/40 rounded text-[12px] font-bold tracking-wider transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                >
+                  TEST LLM
                 </button>
               </div>
-            </div>
 
-            {/* Murf Key */}
-            <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed">
-              <div className="flex justify-between items-center mb-1.5">
-                <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase font-bold">MURF.AI API KEY (TTS)</span>
-                <span className={`text-[11.5px] font-bold ${settings.murfApiKey ? "text-emerald-400" : "text-neutral-500"}`}>
-                  {settings.murfApiKey ? "● CONFIGURED" : "○ OPTIONAL"}
-                </span>
+              {/* Diagnostics Terminal Output */}
+              <div className="bg-[#08090A] border border-[#272B33] rounded p-3 ni-recessed text-[12.5px] min-h-[110px] max-h-[130px] overflow-y-auto space-y-1.5">
+                <div className="text-neutral-400 flex items-center justify-between border-b border-neutral-800/80 pb-1 font-bold text-[11px]">
+                  <span>SYSTEM BUS LOGS</span>
+                  <span>TTY-01</span>
+                </div>
+                {isTesting && (
+                  <div className="text-[#00D2C4] animate-pulse flex items-center gap-1.5 font-semibold">
+                    <span>❯ EXEC:</span>
+                    <span>Executing test sequence...</span>
+                  </div>
+                )}
+                {testResult ? (
+                  <div className="text-slate-100 break-words whitespace-pre-wrap leading-relaxed text-[12px]">
+                    ❯ {testResult}
+                  </div>
+                ) : (
+                  <div className="text-neutral-400 italic text-[11.5px]">
+                    Press any test trigger above to verify external API handshakes.
+                  </div>
+                )}
               </div>
-              <div className="relative flex items-center">
-                <input
-                  type={showKeys.murf ? "text" : "password"}
-                  value={settings.murfApiKey}
-                  onChange={(e) => setSettings({ ...settings, murfApiKey: e.target.value })}
-                  placeholder="Enter Murf Key (Optional)"
-                  className="w-full bg-[#08090A] border border-[#272B33] rounded px-3 py-2 text-[13px] text-slate-100 pr-10 focus:border-[#00D2C4] outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowKeys({ ...showKeys, murf: !showKeys.murf })}
-                  className="absolute right-2.5 text-neutral-400 hover:text-slate-100 text-[18px] material-symbols-outlined cursor-pointer"
-                >
-                  {showKeys.murf ? "visibility_off" : "visibility"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* TAB 4: DIAGNOSTICS */}
-        {activeTab === "DIAGNOSTICS" && (
-          <div className="space-y-3 font-mono">
-            <div className="grid grid-cols-3 gap-2.5">
+              {/* Export Commentary Logs */}
               <button
-                onClick={testLyrics}
-                disabled={isTesting}
-                className="py-2.5 px-2 bg-[#1A1C20] hover:bg-[#252830] text-purple-300 border border-purple-500/40 rounded text-[12px] font-bold tracking-wider transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                onClick={exportLogs}
+                className="w-full py-2 px-3 bg-[#0F1012] hover:bg-[#1f2229] text-slate-200 font-bold border border-[#272B33] rounded flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
               >
-                TEST LYRICS
-              </button>
-              <button
-                onClick={testTTS}
-                disabled={isTesting}
-                className="py-2.5 px-2 bg-[#1A1C20] hover:bg-[#252830] text-emerald-300 border border-emerald-500/40 rounded text-[12px] font-bold tracking-wider transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
-              >
-                TEST TTS
-              </button>
-              <button
-                onClick={testLLM}
-                disabled={isTesting}
-                className="py-2.5 px-2 bg-[#1A1C20] hover:bg-[#252830] text-amber-300 border border-amber-500/40 rounded text-[12px] font-bold tracking-wider transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
-              >
-                TEST LLM
+                <span className="material-symbols-outlined text-[18px] text-[#00D2C4]">download</span>
+                <span className="text-[12px] tracking-wider uppercase font-bold">EXPORT COMMENTARY LOGS (JSON)</span>
               </button>
             </div>
-
-            {/* Diagnostics Terminal Output */}
-            <div className="bg-[#08090A] border border-[#272B33] rounded p-3 ni-recessed text-[12.5px] min-h-[110px] max-h-[130px] overflow-y-auto space-y-1.5">
-              <div className="text-neutral-400 flex items-center justify-between border-b border-neutral-800/80 pb-1 font-bold text-[11px]">
-                <span>SYSTEM BUS LOGS</span>
-                <span>TTY-01</span>
-              </div>
-              {isTesting && (
-                <div className="text-[#00D2C4] animate-pulse flex items-center gap-1.5 font-semibold">
-                  <span>❯ EXEC:</span>
-                  <span>Executing test sequence...</span>
-                </div>
-              )}
-              {testResult ? (
-                <div className="text-slate-100 break-words whitespace-pre-wrap leading-relaxed text-[12px]">
-                  ❯ {testResult}
-                </div>
-              ) : (
-                <div className="text-neutral-400 italic text-[11.5px]">
-                  Press any test trigger above to verify external API handshakes.
-                </div>
-              )}
-            </div>
-
-            {/* Export Commentary Logs */}
-            <button
-              onClick={exportLogs}
-              className="w-full py-2 px-3 bg-[#0F1012] hover:bg-[#1f2229] text-slate-200 font-bold border border-[#272B33] rounded flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[18px] text-[#00D2C4]">download</span>
-              <span className="text-[12px] tracking-wider uppercase font-bold">EXPORT COMMENTARY LOGS (JSON)</span>
-            </button>
-          </div>
-        )}
-      </main>
-
-        {/* Visual Cue: Prominent scroll affordance badge & bottom gradient depth */}
-        {showScrollCue && (
-          <>
-            <div className="pointer-events-none absolute bottom-0 left-0 right-3.5 h-8 bg-gradient-to-t from-[#181A1E] via-[#181A1E]/80 to-transparent z-10" />
-            <div
-              onClick={() => {
-                mainRef.current?.scrollBy({ top: 160, behavior: "smooth" });
-              }}
-              className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#08090B]/95 border border-[#00D2C4]/80 shadow-[0_0_12px_rgba(0,210,196,0.45)] text-[#00D2C4] text-[11px] font-mono font-bold tracking-wider cursor-pointer hover:bg-[#141820] hover:scale-105 active:scale-95 transition-all select-none animate-bounce"
-              title="Click or scroll down to view more options"
-            >
-              <span>MORE OPTIONS</span>
-              <span className="material-symbols-outlined text-[16px]">expand_more</span>
-            </div>
-          </>
-        )}
+          )}
+        </main>
       </div>
 
       {/* Master Chassis Footer */}
