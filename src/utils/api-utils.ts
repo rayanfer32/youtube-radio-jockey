@@ -201,6 +201,49 @@ async function callMurfAPI(
   );
 }
 
+// Call Fish Audio API with error handling
+async function callFishAudioAPI(
+  text: string,
+  apiKey: string,
+  referenceId = "ba1a38946dea44609fc4a8fe6113ed88"
+) {
+  if (!apiKey) {
+    throw new Error("Fish Audio API key not configured");
+  }
+
+  return new Promise<{ audioBlob: Blob }>((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      {
+        action: "callFishAudio",
+        text,
+        referenceId,
+        apiKey,
+      },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          return reject(new Error(chrome.runtime.lastError.message));
+        }
+
+        if (!response || !response.success) {
+          return reject(
+            new Error(response?.error || "Failed to call Fish Audio API")
+          );
+        }
+
+        const base64 = response.audioBase64;
+        const binaryString = atob(base64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: "audio/mp3" });
+
+        resolve({ audioBlob: blob });
+      }
+    );
+  });
+}
+
 // Log commentary for export feature
 function logCommentary(currentSong: string, nextSong: string, script: string) {
   chrome.runtime
@@ -238,6 +281,7 @@ async function callLyricsAPI(query: string) {
 
 const APIUtils = {
   callMurfAPI,
+  callFishAudioAPI,
   callGeminiAPI,
   callChatJimmyAPI,
   callLyricsAPI,
@@ -249,3 +293,4 @@ const APIUtils = {
 // Make it globally available
 (window as any).APIUtils = APIUtils;
 export default APIUtils;
+

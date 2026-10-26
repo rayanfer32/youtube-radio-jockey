@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import { useEffect, useState } from "react";
 import APIUtils from "./utils/api-utils";
 import { GoogleTTS } from "./utils/google-tts";
+import { FishAudioTTS } from "./utils/fish-audio";
 
 
 export default function Popup() {
@@ -9,9 +10,11 @@ export default function Popup() {
   const [settings, setSettings] = useState<Settings>({
     geminiApiKey: "",
     murfApiKey: "",
+    fishApiKey: "",
+    ttsProvider: "fish-audio",
     rjStyle: "sarcastic",
     commentaryLength: "short",
-    voiceId: 'en-GB',
+    voiceId: "ba1a38946dea44609fc4a8fe6113ed88",
     voiceStyle: "default",
     includeHistory: false,
     includeComments: false,
@@ -94,16 +97,51 @@ export default function Popup() {
     setIsTesting(true);
     setTestResult("Testing TTS API...");
     try {
-      const tts = new GoogleTTS();
-      await tts.synthesize(
-        "Welcome to the show! This is a test of the Google TTS system.",
-        settings.voiceId || "en-US"
-      );
-      const audioBlob = tts.toBlob();
-      const url = URL.createObjectURL(audioBlob);
-      const audio = new Audio(url);
-      audio.play();
-      setTestResult("✅ TTS Audio generated and playing...");
+      const provider = settings.ttsProvider || "fish-audio";
+
+      if (provider === "fish-audio") {
+        if (!settings.fishApiKey) {
+          setTestResult("❌ Please enter and save Fish Audio API Key first");
+          return;
+        }
+        const tts = new FishAudioTTS();
+        await tts.synthesize(
+          "[excited] Hello! Welcome to Fish Audio. [laughing] This is my first AI-generated voice.",
+          settings.fishApiKey,
+          settings.voiceId || "ba1a38946dea44609fc4a8fe6113ed88"
+        );
+        const audioBlob = tts.toBlob();
+        const url = URL.createObjectURL(audioBlob);
+        const audio = new Audio(url);
+        audio.play();
+        setTestResult("✅ Fish Audio generated and playing...");
+      } else if (provider === "murf") {
+        if (!settings.murfApiKey) {
+          setTestResult("❌ Please enter and save Murf.ai API Key first");
+          return;
+        }
+        const data = await APIUtils.callMurfAPI(
+          "Welcome to the show! This is a test of Murf.ai TTS.",
+          settings.murfApiKey,
+          settings.voiceId || "en-US-natalie",
+          settings.voiceStyle || "Promo"
+        );
+        const url = URL.createObjectURL(data.audioBlob);
+        const audio = new Audio(url);
+        audio.play();
+        setTestResult("✅ Murf.ai audio generated and playing...");
+      } else {
+        const tts = new GoogleTTS();
+        await tts.synthesize(
+          "Welcome to the show! This is a test of the Google TTS system.",
+          settings.voiceId || "en-US"
+        );
+        const audioBlob = tts.toBlob();
+        const url = URL.createObjectURL(audioBlob);
+        const audio = new Audio(url);
+        audio.play();
+        setTestResult("✅ Google TTS audio generated and playing...");
+      }
     } catch (e: any) {
       setTestResult("❌ Error: " + e.message);
     } finally {
@@ -180,9 +218,32 @@ export default function Popup() {
             </select>
           </div>
 
+          {/* TTS Provider */}
+          <div>
+            <label className="block font-medium">TTS Provider:</label>
+            <select
+              value={settings.ttsProvider || "fish-audio"}
+              onChange={(e) =>
+                setSettings({
+                  ...settings,
+                  ttsProvider: e.target.value as Settings["ttsProvider"],
+                })
+              }
+              className="w-full px-3 py-2 rounded border dark:border-gray-700 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="fish-audio">Fish Audio</option>
+              <option value="google-tts">Google TTS</option>
+              <option value="murf">Murf.ai</option>
+            </select>
+          </div>
+
           {/* Voice ID */}
           <div>
-            <label className="block font-medium">Voice ID:</label>
+            <label className="block font-medium">
+              {settings.ttsProvider === "fish-audio"
+                ? "Fish Audio Reference ID:"
+                : "Voice ID / Language:"}
+            </label>
             <input
               type="text"
               value={settings.voiceId}
@@ -190,7 +251,11 @@ export default function Popup() {
                 setSettings({ ...settings, voiceId: e.target.value })
               }
               className="w-full px-4 py-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter language code (e.g., en, hi, bn)"
+              placeholder={
+                settings.ttsProvider === "fish-audio"
+                  ? "e.g., ba1a38946dea44609fc4a8fe6113ed88"
+                  : "Enter voice ID or lang code"
+              }
             />
           </div>
 
@@ -344,6 +409,21 @@ export default function Popup() {
 
               <div>
                 <label className="block text-sm font-medium">
+                  Fish Audio API Key:
+                </label>
+                <input
+                  type="password"
+                  value={settings.fishApiKey || ""}
+                  onChange={(e) =>
+                    setSettings({ ...settings, fishApiKey: e.target.value })
+                  }
+                  className="w-full px-4 py-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter Fish Audio API Key"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium">
                   Murf.ai API Key:
                 </label>
                 <input
@@ -432,6 +512,8 @@ root.render(<Popup />);
 export interface Settings {
   geminiApiKey: string;
   murfApiKey: string;
+  fishApiKey: string;
+  ttsProvider: "fish-audio" | "google-tts" | "murf";
   rjStyle: string;
   commentaryLength: string;
   voiceId: string;

@@ -3,6 +3,7 @@ import AudioUtils from "./utils/audio-utils";
 import DomUtils from "./utils/dom-utils";
 import YouTubeUtils from "./utils/youtube-utils";
 import { GoogleTTS } from "./utils/google-tts";
+import { FishAudioTTS } from "./utils/fish-audio";
 
 class YouTubeRJMode {
   isRJModeActive: boolean;
@@ -18,6 +19,7 @@ class YouTubeRJMode {
   progressInterval: any;
   scriptHistory: any[];
   googleTTS: GoogleTTS;
+  fishAudioTTS: FishAudioTTS;
   ttsVoice: string;
   generatedAudioData: any;
 
@@ -35,6 +37,7 @@ class YouTubeRJMode {
     this.progressInterval = null;
     this.scriptHistory = [];
     this.googleTTS = new GoogleTTS(); // Initialize Google TTS instance
+    this.fishAudioTTS = new FishAudioTTS(); // Initialize Fish Audio TTS instance
     this.ttsVoice = "en"; // Default TTS voice (language code for Google TTS)
     this.generatedAudioData = null; // Store generated audio data
 
@@ -57,6 +60,19 @@ class YouTubeRJMode {
         chrome.storage.sync.set({ geminiApiKey });
       } else {
         alert("Get free API key from https://aistudio.google.com/apikey");
+      }
+    }
+    const provider =
+      settings.ttsProvider ||
+      (settings.fishApiKey
+        ? "fish-audio"
+        : settings.murfApiKey
+        ? "murf"
+        : "fish-audio");
+    if (provider === "fish-audio" && !settings.fishApiKey) {
+      let fishApiKey = prompt("Enter your Fish Audio API Key:");
+      if (fishApiKey) {
+        chrome.storage.sync.set({ fishApiKey });
       }
     }
   }
@@ -113,9 +129,17 @@ class YouTubeRJMode {
     try {
       DomUtils.showLoadingIndicator();
 
-      const currentSonglyrics = await APIUtils.callLyricsAPI(
-        this.currentVideoTitle
-      );
+      let currentSonglyrics: string | null = null;
+      try {
+        currentSonglyrics = (await APIUtils.callLyricsAPI(
+          this.currentVideoTitle
+        )) as string | null;
+      } catch (lyricsError) {
+        console.warn(
+          "Lyrics API failed or no lyrics found, proceeding with commentary & TTS generation:",
+          lyricsError
+        );
+      }
 
       // Use API utility functions
       const settings = await APIUtils.getAPISettings();
@@ -140,9 +164,31 @@ class YouTubeRJMode {
       this.scriptHistory.push(script);
 
       let audioData = {};
-      if (settings.murfApiKey) {
-        // Use Murf API if available
-        // audioData contains the audio blob and other metadata
+      const provider =
+        settings.ttsProvider ||
+        (settings.fishApiKey
+          ? "fish-audio"
+          : settings.murfApiKey
+          ? "murf"
+          : "fish-audio");
+
+      if (provider === "fish-audio") {
+        if (!settings.fishApiKey) {
+          throw new Error(
+            "Fish Audio API key not configured. Please add it in extension settings."
+          );
+        }
+        const refId = settings.voiceId || "ba1a38946dea44609fc4a8fe6113ed88";
+        await this.fishAudioTTS.synthesize(script, settings.fishApiKey, refId);
+        audioData = {
+          audioBlob: this.fishAudioTTS.toBlob(),
+        };
+      } else if (provider === "murf") {
+        if (!settings.murfApiKey) {
+          throw new Error(
+            "Murf.ai API key not configured. Please add it in extension settings."
+          );
+        }
         audioData = await APIUtils.callMurfAPI(
           script,
           settings.murfApiKey,
@@ -150,7 +196,7 @@ class YouTubeRJMode {
           settings.voiceStyle
         );
       } else {
-        // If Murf API is not available or we want to fallback to Google TTS
+        // Fallback to Google TTS
         let lang = settings.voiceId || this.ttsVoice;
         // If it looks like an Edge TTS voice ID (e.g., en-US-AriaNeural), extract the lang part
         if (lang.includes("-") && lang.split("-").length > 2) {

@@ -14,7 +14,8 @@
     "https://generativelanguage.googleapis.com/*",
     "https://lrclib.net/*",
     "https://chatjimmy.ai/*",
-    "https://translate.google.com/*"
+    "https://translate.google.com/*",
+    "https://api.fish.audio/*"
   ],
   "background": {
     "service_worker": "background.js",

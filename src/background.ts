@@ -12,6 +12,9 @@ chrome.runtime.onInstalled.addListener(() => {
     volumeDucking: 70,
     darkMode: false,
     autoStart: false,
+    ttsProvider: "fish-audio",
+    fishApiKey: "",
+    voiceId: "ba1a38946dea44609fc4a8fe6113ed88",
   });
 });
 
@@ -158,6 +161,39 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           sendResponse({ success: true, data, audioBase64: base64 });
         };
         reader.readAsDataURL(blob);
+      })
+      .catch((error) => sendResponse({ success: false, error: error.message }));
+    return true;
+  } else if (request.action === "callFishAudio") {
+    const { text, referenceId, apiKey } = request;
+    fetch("https://api.fish.audio/v1/tts", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        model: "s2.1-pro-free",
+      },
+      body: JSON.stringify({
+        text: text,
+        reference_id: referenceId || "ba1a38946dea44609fc4a8fe6113ed88",
+        format: "mp3",
+      }),
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => "");
+          throw new Error(
+            `Fish Audio API error: ${response.status} ${response.statusText} - ${errorText}`
+          );
+        }
+        const arrayBuffer = await response.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        let binary = "";
+        for (let i = 0; i < uint8Array.byteLength; i++) {
+          binary += String.fromCharCode(uint8Array[i]);
+        }
+        const base64 = btoa(binary);
+        sendResponse({ success: true, audioBase64: base64 });
       })
       .catch((error) => sendResponse({ success: false, error: error.message }));
     return true;
