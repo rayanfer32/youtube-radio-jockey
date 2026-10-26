@@ -83,6 +83,28 @@ const YouTubeUtils = {
 
   getNextVideoTitle() {
     if (isYouTubeMusic()) {
+      // Prefer the next sibling of the currently playing playlist item
+      const playingItem = document.querySelector(
+        'ytmusic-responsive-list-item-renderer[play-button-state="playing"]'
+      );
+      const nextItem =
+        (playingItem?.nextElementSibling as Element | null) ||
+        (playingItem?.nextSibling as Element | null);
+      const nextTitle = nextItem
+        ?.querySelector("yt-formatted-string.title")
+        ?.textContent?.trim();
+      if (nextTitle) return nextTitle;
+
+      // Fallback: parse text from nextSibling
+      if (playingItem?.nextSibling) {
+        const text = (playingItem.nextSibling.textContent || "")
+          .trim()
+          .split(/\n/)
+          .map((s) => s.trim())
+          .filter(Boolean)[0];
+        if (text) return text;
+      }
+
       const items = Array.from(
         document.querySelectorAll("ytmusic-responsive-list-item-renderer")
       );
