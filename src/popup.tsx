@@ -775,7 +775,8 @@ export default function Popup() {
               </div>
 
               {/* Voice Style (Murf) & Commentary Length Presets */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className={`grid ${settings.ttsProvider === "murf" ? "grid-cols-2" : "grid-cols-1"} gap-3`}>
+                {settings.ttsProvider === "murf" && (
                 <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed flex flex-col justify-between">
                   <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase mb-1.5 block font-bold">MURF.AI VOICE STYLE</span>
                   <select
@@ -792,6 +793,7 @@ export default function Popup() {
                     <option value="Angry">Angry</option>
                   </select>
                 </div>
+                )}
 
                 <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed flex flex-col justify-between">
                   <div className="flex justify-between items-center mb-1.5">
@@ -848,6 +850,7 @@ export default function Popup() {
               </div>
 
               {/* Murf Key */}
+              {settings.ttsProvider === "murf" && (
               <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed">
                 <div className="flex justify-between items-center mb-1.5">
                   <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase font-bold">MURF.AI API KEY (TTS)</span>
@@ -872,6 +875,7 @@ export default function Popup() {
                   </button>
                 </div>
               </div>
+              )}
             </div>
           )}
 
