@@ -11,7 +11,7 @@ YouTube Radio Jockey listens along to your YouTube playlists and acts as your li
 
 ---
 
-![YouTube RJ Extension Running on YouTube](demo.png)
+![YouTube RJ Extension Running on YouTube](docs/demo.png)
 
 ---
 
@@ -61,6 +61,13 @@ YouTube Radio Jockey listens along to your YouTube playlists and acts as your li
 - **API Handshake Verification**: Test buttons for LRCLIB Lyrics, TTS Synthesis, and LLM completions.
 - **System Bus Logs**: Real-time terminal output directly in the extension popup.
 - **Export Commentary Logs**: One-click download of all generated session scripts with timestamps and song metadata as a structured JSON file.
+
+---
+
+### 🎵 YouTube Music Support
+- Works on `music.youtube.com` playlists (and other list-based playback) in addition to `youtube.com`.
+- Detects the current and upcoming tracks from the YouTube Music player bar and playlist shelf.
+- All features (AI commentary, studio-grade ducking, multi-engine LLM/TTS, personas) work on YouTube Music.
 
 ---
 

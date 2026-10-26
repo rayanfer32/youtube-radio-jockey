@@ -11,5 +11,5 @@
     "resolveJsonModule": true,
     "types": ["chrome"]
   },
-  "include": ["src", "tests/edge-tts-web.ts", "tests/google-tts.ts"]
+  "include": ["src", "tests/edge-tts-web.ts", "src/utils/google-tts.ts"]
 }

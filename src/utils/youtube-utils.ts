@@ -14,10 +14,13 @@ const YouTubeUtils = {
   getCurrentVideoTitle() {
     if (isYouTubeMusic()) {
       // Most reliable: the title shown in the player bar
-      const playerBarTitle = document
-        .querySelector(".title.style-scope.ytmusic-player-bar")
-        ?.textContent?.trim();
-      if (playerBarTitle) return playerBarTitle;
+      const playerBarTitleEl = document.querySelector(".title.style-scope.ytmusic-player-bar")
+      const subtitle = playerBarTitleEl?.nextElementSibling?.textContent?.trim()
+        .split(/\n/)
+        .map((s) => s.trim())
+        .join(' ')
+      const playerBarTitle = playerBarTitleEl?.textContent?.trim();
+      if (playerBarTitle) return `${playerBarTitle} - ${subtitle}`;
 
       const items = Array.from(
         document.querySelectorAll("ytmusic-responsive-list-item-renderer")
@@ -84,68 +87,14 @@ const YouTubeUtils = {
   getNextVideoTitle() {
     if (isYouTubeMusic()) {
       // Prefer the next sibling of the currently playing playlist item
-      const playingItem = document.querySelector(
-        'ytmusic-responsive-list-item-renderer[play-button-state="playing"]'
-      );
-      const nextItem =
-        (playingItem?.nextElementSibling as Element | null) ||
-        (playingItem?.nextSibling as Element | null);
-      const nextTitle = nextItem
-        ?.querySelector("yt-formatted-string.title")
-        ?.textContent?.trim();
-      if (nextTitle) return nextTitle;
-
-      // Fallback: parse text from nextSibling
-      if (playingItem?.nextSibling) {
-        const text = (playingItem.nextSibling.textContent || "")
-          .trim()
-          .split(/\n/)
-          .map((s) => s.trim())
-          .filter(Boolean)[0];
-        if (text) return text;
-      }
-
-      const items = Array.from(
-        document.querySelectorAll("ytmusic-responsive-list-item-renderer")
-      );
-      if (items.length === 0) return "";
-
-      // Identify current item by player bar title first
-      const playerBarTitle = document
-        .querySelector(".title.style-scope.ytmusic-player-bar")
-        ?.textContent?.trim();
-
-      let idx = -1;
-      if (playerBarTitle) {
-        idx = items.findIndex((it) => {
-          const t = it.querySelector("yt-formatted-string.title")?.textContent?.trim();
-          return t === playerBarTitle;
-        });
-      }
-
-      // Then by play state
-      if (idx === -1) {
-        idx = items.findIndex((it) => {
-          const state = it.getAttribute("play-button-state");
-          return state === "playing" || state === "paused";
-        });
-      }
-
-      // Then by video id
-      if (idx === -1) {
-        const vid = this.extractVideoId();
-        if (vid) {
-          idx = items.findIndex((it) => (it.innerHTML || "").includes(vid));
-        }
-      }
-
-      if (idx === -1) idx = 0;
-
-      const next = items[idx + 1];
-      return (
-        next?.querySelector("yt-formatted-string.title")?.textContent?.trim() ||
-        ""
-      );
+      const playingItem = document.querySelectorAll('[play-button-state="playing"]')[1]
+      const text = (playingItem?.nextSibling?.textContent || "")
+        .trim()
+        .split(/\n/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .join(' | ')
+      return text
     }
 
     const playlistItem = document.querySelector("#playlist-items[selected]");

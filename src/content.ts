@@ -2,7 +2,7 @@ import APIUtils from "./utils/api-utils";
 import AudioUtils from "./utils/audio-utils";
 import DomUtils from "./utils/dom-utils";
 import YouTubeUtils from "./utils/youtube-utils";
-import { GoogleTTS } from "../tests/google-tts";
+import { GoogleTTS } from "./utils/google-tts";
 import { FishAudioTTS } from "./utils/fish-audio";
 
 class YouTubeRJMode {
