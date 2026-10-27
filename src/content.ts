@@ -6,6 +6,8 @@ import { GoogleTTS } from "./utils/google-tts";
 import { FishAudioTTS } from "./utils/fish-audio";
 import Logger from "./utils/logger";
 
+type RJStatus = "standby" | "waiting" | "generating" | "ready" | "playing" | "error";
+
 class YouTubeRJMode {
   isRJModeActive: boolean;
   currentVideoTitle: string;
@@ -23,6 +25,16 @@ class YouTubeRJMode {
   fishAudioTTS: FishAudioTTS;
   ttsVoice: string;
   generatedAudioData: any;
+  status: RJStatus;
+  statusMessage: string;
+  generateAfterSeconds: number;
+  playBeforeEndSeconds: number;
+  activeAudio: HTMLAudioElement | null;
+  activeAudioUrl: string;
+  duckedVideo: HTMLVideoElement | null;
+  duckLevel: number;
+  lastAppliedVolume: number | null;
+  volumeChangeHandler: (() => void) | null;
 
   constructor() {
     this.isRJModeActive = false;
@@ -41,6 +53,16 @@ class YouTubeRJMode {
     this.fishAudioTTS = new FishAudioTTS(); // Initialize Fish Audio TTS instance
     this.ttsVoice = "en"; // Default TTS voice (language code for Google TTS)
     this.generatedAudioData = null; // Store generated audio data
+    this.status = "standby";
+    this.statusMessage = "RJ mode is off";
+    this.generateAfterSeconds = 10;
+    this.playBeforeEndSeconds = 30;
+    this.activeAudio = null;
+    this.activeAudioUrl = "";
+    this.duckedVideo = null;
+    this.duckLevel = 1;
+    this.lastAppliedVolume = null;
+    this.volumeChangeHandler = null;
 
     this.init();
   }
@@ -51,6 +73,13 @@ class YouTubeRJMode {
     DomUtils.createRJModeButton(this.toggleRJMode.bind(this));
 
     const settings = await APIUtils.getAPISettings();
+    this.generateAfterSeconds = settings.generateAfterSeconds ?? 10;
+    this.playBeforeEndSeconds = settings.playBeforeEndSeconds ?? 30;
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== "sync") return;
+      if (changes.generateAfterSeconds) this.generateAfterSeconds = changes.generateAfterSeconds.newValue ?? 10;
+      if (changes.playBeforeEndSeconds) this.playBeforeEndSeconds = changes.playBeforeEndSeconds.newValue ?? 30;
+    });
     if (settings.autoStart && YouTubeUtils.isPlaylistPage()) {
       await this.startRJMode();
       DomUtils.updateRJModeButton(true);
@@ -85,27 +114,44 @@ class YouTubeRJMode {
     );
   }
 
-  async generateRJCommentary() {
+  setStatus(status: RJStatus, message?: string) {
+    const defaultMessages: Record<RJStatus, string> = {
+      standby: "RJ mode is off",
+      waiting: "Waiting for the next track",
+      generating: "Preparing commentary",
+      ready: "Commentary is ready to play",
+      playing: "RJ commentary is on air",
+      error: "Something went wrong",
+    };
+    const resolvedMessage = message || defaultMessages[status];
+    if (this.status === status && this.statusMessage === resolvedMessage) return;
+    this.status = status;
+    this.statusMessage = resolvedMessage;
+    chrome.runtime.sendMessage({ action: "rjStatusChanged", status, message: resolvedMessage, active: this.isRJModeActive }).catch(() => {});
+  }
+
+  async generateRJCommentary(force = false, attempt = 0): Promise<boolean> {
     // Prevent multiple simultaneous commentary generations
-    if (this.isGeneratingCommentary || this.isRJPlaying) {
+    if ((this.isGeneratingCommentary && attempt === 0) || this.isRJPlaying) {
       Logger.debug("Skipped commentary generation because audio work is active");
-      return;
+      return false;
     }
 
     // Check if we've already processed this video
     const videoId = YouTubeUtils.extractVideoId() || this.currentVideoTitle;
-    if (videoId === this.lastProcessedVideo) {
+    if (!force && attempt === 0 && videoId === this.lastProcessedVideo) {
       Logger.debug("Skipped commentary generation for an already processed track");
-      return;
+      return false;
     }
 
     if (!this.currentVideoTitle || this.currentVideoTitle.trim() === "") {
       Logger.debug("Skipped commentary generation because the current track title is unavailable");
-      return;
+      return false;
     }
 
     this.isGeneratingCommentary = true;
     this.lastProcessedVideo = videoId;
+    this.setStatus("generating", "Writing and preparing commentary");
 
     try {
       DomUtils.showLoadingIndicator();
@@ -127,8 +173,8 @@ class YouTubeRJMode {
       const { systemPrompt, currentTask } = APIUtils.generateRJPrompt(
         this.currentVideoTitle,
         this.nextVideoTitle,
-        settings.rjStyle,
-        settings.commentaryLength,
+        settings.rjStyle as "energetic" | "chill" | "sarcastic" | "professional",
+        settings.commentaryLength as "short" | "medium" | "long",
         settings.includeHistory ? this.scriptHistory.join("\n") : "",
         settings.includeComments ? YouTubeUtils.getComments().join("\n") : "",
         currentSonglyrics as string,
@@ -195,13 +241,29 @@ class YouTubeRJMode {
       );
 
       this.generatedAudioData = audioData; // Store generated audio data for later use
+      this.setStatus("ready", "Commentary is ready to play");
       Logger.info("Commentary audio is ready");
 
       DomUtils.hideLoadingIndicator();
+      return true;
     } catch (error: any) {
-      Logger.error("Commentary generation failed", error);
       DomUtils.hideLoadingIndicator();
-      DomUtils.showErrorMessage(error.message);
+      const message = String(error?.message || error || "");
+      const retryable = /\b429\b|\b5\d\d\b|failed to fetch|networkerror|network request|timed? ?out|timeout|temporarily unavailable|err_(?:connection|network)/i.test(message);
+      const maxAttempts = 3;
+      if (retryable && attempt < maxAttempts - 1) {
+        const delayMs = 1000 * Math.pow(2, attempt);
+        const retryNumber = attempt + 2;
+        Logger.warn(`Commentary request failed; retrying attempt ${retryNumber}/${maxAttempts} in ${delayMs}ms`, error);
+        this.setStatus("generating", `Temporary service issue. Retrying ${retryNumber}/${maxAttempts} in ${delayMs / 1000}s`);
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        return await this.generateRJCommentary(true, attempt + 1);
+      }
+      Logger.error("Commentary generation failed", error);
+      DomUtils.showErrorMessage(message || "Commentary generation failed");
+      this.setStatus("error", message || "Commentary generation failed");
+      this.lastProcessedVideo = "";
+      return false;
     } finally {
       this.isGeneratingCommentary = false;
     }
@@ -220,12 +282,14 @@ class YouTubeRJMode {
     }
 
     this.isRJPlaying = true;
+    this.setStatus("playing", "RJ commentary is on air");
 
     const video = YouTubeUtils.getVideoElement();
     try {
       if (!video) {
         Logger.error("Could not play commentary because the YouTube video element was unavailable");
         this.isRJPlaying = false;
+        this.setStatus("error", "YouTube video player was not found");
         return;
       }
 
@@ -235,9 +299,32 @@ class YouTubeRJMode {
         -(Math.max(0, Math.min(100, settings.volumeDucking)) / 100) * 24;
       const duckLevel = Math.pow(10, duckingDb / 20);
       this.originalVolume = await AudioUtils.duckVolume(video, duckLevel);
+      this.duckedVideo = video;
+      this.duckLevel = duckLevel;
+      this.lastAppliedVolume = video.volume;
+      this.volumeChangeHandler = () => {
+        if (!this.isRJPlaying || this.duckedVideo !== video) return;
+        const currentVolume = video.volume;
+        if (this.lastAppliedVolume !== null && Math.abs(currentVolume - this.lastAppliedVolume) < 0.005) {
+          this.lastAppliedVolume = null;
+          return;
+        }
+
+        // YouTube occasionally reapplies its stored player volume. Treat external
+        // changes as the new user volume, then keep the configured ducking ratio.
+        this.originalVolume = currentVolume;
+        const heldVolume = currentVolume * this.duckLevel;
+        if (Math.abs(currentVolume - heldVolume) >= 0.005) {
+          this.lastAppliedVolume = heldVolume;
+          video.volume = heldVolume;
+        }
+      };
+      video.addEventListener("volumechange", this.volumeChangeHandler);
 
       // Create and play RJ audio using utility
       const { audio, audioUrl } = AudioUtils.createAudio(audioBlob);
+      this.activeAudio = audio;
+      this.activeAudioUrl = audioUrl;
 
       audio.addEventListener("ended", () => {
         this.restoreVolumeAndCleanup(video, audioUrl);
@@ -256,6 +343,7 @@ class YouTubeRJMode {
     } catch (error) {
       Logger.error("Could not play commentary", error);
       this.isRJPlaying = false;
+      this.releaseVolumeHold();
 
       // Restore original volume
       if (video) {
@@ -267,7 +355,11 @@ class YouTubeRJMode {
   }
 
   async restoreVolumeAndCleanup(video: HTMLVideoElement, audioUrl: string) {
-    // Restore original volume using utility
+    if (!this.isRJPlaying) return;
+    this.isRJPlaying = false;
+    this.releaseVolumeHold();
+
+    // Restore the latest volume observed during playback.
     await AudioUtils.restoreVolume(video, this.originalVolume);
 
     // Clean up audio URL
@@ -275,8 +367,19 @@ class YouTubeRJMode {
       URL.revokeObjectURL(audioUrl);
     }
 
-    this.isRJPlaying = false;
+    this.activeAudio = null;
+    this.activeAudioUrl = "";
+    this.setStatus(this.isRJModeActive ? "waiting" : "standby");
     Logger.info("Commentary playback finished");
+  }
+
+  releaseVolumeHold() {
+    if (this.duckedVideo && this.volumeChangeHandler) {
+      this.duckedVideo.removeEventListener("volumechange", this.volumeChangeHandler);
+    }
+    this.duckedVideo = null;
+    this.volumeChangeHandler = null;
+    this.lastAppliedVolume = null;
   }
 
   async toggleRJMode() {
@@ -291,13 +394,25 @@ class YouTubeRJMode {
   }
 
   async startRJMode() {
+    this.isRJModeActive = true;
     this.getCurrentAndNextTitles();
     this.setupVideoEventListeners();
     Logger.info("RJ mode started");
+    this.setStatus("waiting", "Waiting for the next track");
   }
 
   stopRJMode() {
     this.isRJModeActive = false;
+    if (this.activeAudio) {
+      this.activeAudio.pause();
+      this.activeAudio.currentTime = 0;
+      if (this.activeAudioUrl) URL.revokeObjectURL(this.activeAudioUrl);
+      this.activeAudio = null;
+      this.activeAudioUrl = "";
+      const video = this.duckedVideo || YouTubeUtils.getVideoElement();
+      this.releaseVolumeHold();
+      if (video) void AudioUtils.restoreVolume(video, this.originalVolume);
+    }
     this.isRJPlaying = false;
     this.isGeneratingCommentary = false;
     this.lastProcessedVideo = "";
@@ -314,6 +429,7 @@ class YouTubeRJMode {
     // Clean up any loading indicators
     DomUtils.hideLoadingIndicator();
     Logger.info("RJ mode stopped");
+    this.setStatus("standby", "RJ mode is off");
 
   }
 
@@ -327,9 +443,9 @@ class YouTubeRJMode {
 
       const timeRemaining = video.duration - video.currentTime;
 
-      // generate commentary and keep it ready 10 seconds afer video starts
+      // Generate commentary after the configured elapsed time.
       if (
-        video.currentTime > 10 &&
+        video.currentTime > this.generateAfterSeconds &&
         !this.isGeneratingCommentary &&
         !this.generatedAudioData
       ) {
@@ -339,11 +455,13 @@ class YouTubeRJMode {
 
       // Start commentary when 30 seconds remain and not already playing
       if (
-        timeRemaining <= 30 &&
+        timeRemaining <= this.playBeforeEndSeconds &&
         !this.isRJPlaying &&
         !this.isGeneratingCommentary
       ) {
         this.playRJCommentary();
+      } else if (!this.generatedAudioData && !this.isGeneratingCommentary && this.isRJModeActive) {
+        this.setStatus("waiting", "Waiting for commentary timing window");
       }
     };
 
@@ -366,6 +484,29 @@ class YouTubeRJMode {
 
 // Listen for diagnostics triggers from the extension popup
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+  if (["toggleRJMode", "getRJStatus", "testCommentary"].includes(request?.action)) {
+    const rj = (window as any).youtubeRJ;
+    if (!rj) {
+      sendResponse({ success: false, error: "RJ instance not available on this page" });
+      return false;
+    }
+    if (request.action === "getRJStatus") {
+      sendResponse({ success: true, active: rj.isRJModeActive, status: rj.status, message: rj.statusMessage });
+      return false;
+    }
+    const task = request.action === "toggleRJMode"
+      ? rj.toggleRJMode().then(() => ({ active: rj.isRJModeActive, status: rj.status, message: rj.statusMessage }))
+      : (async () => {
+          rj.getCurrentAndNextTitles();
+          if (!rj.currentVideoTitle) rj.currentVideoTitle = YouTubeUtils.cleanVideoTitle(document.title.replace(/ - YouTube$/, ""));
+          const generated = await rj.generateRJCommentary(true);
+          if (generated) await rj.playRJCommentary();
+          return { active: rj.isRJModeActive, status: rj.status, message: rj.statusMessage };
+        })();
+    task.then((result: any) => sendResponse({ success: true, ...result }))
+      .catch((error: any) => sendResponse({ success: false, error: error?.message || String(error) }));
+    return true;
+  }
   if (
     request?.action === "generateRJCommentary" ||
     request?.action === "playRJCommentary"

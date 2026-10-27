@@ -7,6 +7,14 @@ declare global {
 
 // Audio-related utility functions
 import Logger from "./logger";
+
+type VolumeTransition = {
+  timers: ReturnType<typeof setTimeout>[];
+  finish: () => void;
+};
+
+const volumeTransitions = new WeakMap<HTMLVideoElement, VolumeTransition>();
+
 const AudioUtils = {
   // Create audio context with fallbacks
   createAudioContext() {
@@ -31,16 +39,31 @@ const AudioUtils = {
     const volumeStep = (targetVolume - startVolume) / steps;
     const timeStep = duration / steps;
 
+    const previous = volumeTransitions.get(video);
+    if (previous) {
+      previous.timers.forEach(clearTimeout);
+      previous.finish();
+    }
+
     await new Promise<void>((resolve) => {
+      const transition: VolumeTransition = {
+        timers: [],
+        finish: () => {
+          if (volumeTransitions.get(video) === transition) volumeTransitions.delete(video);
+          resolve();
+        },
+      };
+      volumeTransitions.set(video, transition);
       for (let i = 0; i < steps; i++) {
-        setTimeout(() => {
+        const timer = setTimeout(() => {
           const newVolume = Math.max(
             0,
             Math.min(1, startVolume + volumeStep * (i + 1))
           );
           video.volume = newVolume;
-          if (i === steps - 1) resolve();
+          if (i === steps - 1) transition.finish();
         }, timeStep * (i + 1));
+        transition.timers.push(timer);
       }
     });
   },
@@ -50,7 +73,8 @@ const AudioUtils = {
     if (!video) return 1;
 
     const originalVolume = video.volume;
-    await this.smoothVolumeTransition(video, duckLevel);
+    const targetVolume = originalVolume * Math.max(0, Math.min(1, duckLevel));
+    await this.smoothVolumeTransition(video, targetVolume);
     return originalVolume;
   },
 

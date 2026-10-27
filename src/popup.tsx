@@ -1,7 +1,8 @@
 import { createRoot } from "react-dom/client";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, type PointerEvent, type KeyboardEvent } from "react";
 import APIUtils from "./utils/api-utils";
 import { FishAudioTTS } from "./utils/fish-audio";
+import { GoogleTTS } from "./utils/google-tts";
 
 export interface Settings {
   geminiApiKey: string;
@@ -21,11 +22,100 @@ export interface Settings {
   volumeDucking: number;
   loggingEnabled: boolean;
   logLevel: "debug" | "info" | "warn" | "error";
+  generateAfterSeconds: number;
+  playBeforeEndSeconds: number;
+  setupComplete: boolean;
   hostName: string;
   radioStation: string;
 }
 
 type TabType = "PERSONA" | "TTS" | "LLM" | "DIAGNOSTICS";
+type KnobValue = string | number;
+
+function RotaryKnob({
+  label,
+  options,
+  value,
+  valueLabel,
+  accent = "#00D2C4",
+  onChange,
+}: {
+  label: string;
+  options: KnobValue[];
+  value: KnobValue;
+  valueLabel: string;
+  accent?: string;
+  onChange: (value: KnobValue) => void;
+}) {
+  const drag = useRef<{ startY: number; startIndex: number } | null>(null);
+  const selectedIndex = Math.max(0, options.indexOf(value));
+  const range = Math.max(1, options.length - 1);
+  const progress = selectedIndex / range;
+  const angle = -135 + progress * 270;
+  const arcOffset = 144 * (1 - progress);
+
+  const updateFromPointer = (event: PointerEvent<HTMLDivElement>) => {
+    if (!drag.current) return;
+    const steps = Math.trunc((drag.current.startY - event.clientY) / 18);
+    const nextIndex = Math.max(0, Math.min(options.length - 1, drag.current.startIndex + steps));
+    if (options[nextIndex] !== value) onChange(options[nextIndex]);
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    let nextIndex = selectedIndex;
+    if (event.key === "ArrowUp" || event.key === "ArrowRight") nextIndex += 1;
+    else if (event.key === "ArrowDown" || event.key === "ArrowLeft") nextIndex -= 1;
+    else if (event.key === "Home") nextIndex = 0;
+    else if (event.key === "End") nextIndex = options.length - 1;
+    else return;
+    event.preventDefault();
+    nextIndex = Math.max(0, Math.min(options.length - 1, nextIndex));
+    onChange(options[nextIndex]);
+  };
+
+  return (
+    <div
+      role="slider"
+      tabIndex={0}
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={options.length - 1}
+      aria-valuenow={selectedIndex}
+      aria-valuetext={valueLabel}
+      onKeyDown={handleKeyDown}
+      onPointerDown={(event) => {
+        event.preventDefault();
+        event.currentTarget.setPointerCapture(event.pointerId);
+        drag.current = { startY: event.clientY, startIndex: selectedIndex };
+      }}
+      onPointerMove={updateFromPointer}
+      onPointerUp={() => { drag.current = null; }}
+      onPointerCancel={() => { drag.current = null; }}
+      className="flex flex-col items-center group cursor-ns-resize rounded outline-none focus-visible:ring-2 focus-visible:ring-white/80 touch-none select-none"
+      title={`${label}: drag up or down to adjust; use arrow keys for fine control`}
+      style={{ touchAction: "none" }}
+    >
+      <div className="relative w-14 h-14 flex items-center justify-center">
+        <svg className="w-14 h-14 -rotate-90 transform" viewBox="0 0 60 60" aria-hidden="true">
+          <circle cx="30" cy="30" r="23" stroke="#252830" strokeWidth="3" fill="none" strokeDasharray="144" strokeDashoffset="36" strokeLinecap="round" />
+          <circle cx="30" cy="30" r="23" stroke={accent} strokeWidth="3" fill="none" strokeDasharray="145" strokeDashoffset={arcOffset} strokeLinecap="round" className="filter drop-shadow-[0_0_4px_rgba(0,210,196,0.65)] transition-all duration-100" />
+        </svg>
+        <div className="absolute w-9 h-9 rounded-full bg-gradient-to-br from-[#2a2d34] via-[#1a1b1f] to-[#0c0d0f] border border-neutral-600 knob-radial-shadow flex items-center justify-center group-hover:scale-105 transition-transform">
+          <div className="w-full h-full rounded-full border border-white/10 flex items-center justify-center relative">
+            <div className="absolute left-1/2 top-1/2 w-0 h-0 pointer-events-none" style={{ transform: `rotate(${angle}deg)` }}>
+              <div className="absolute -left-px bottom-0 w-0.5 h-[14px] rounded-full shadow-[0_0_4px_currentColor]" style={{ backgroundColor: accent, color: accent }} />
+            </div>
+            <div className="w-3 h-3 rounded-full bg-[#111215] border border-neutral-700" />
+          </div>
+        </div>
+      </div>
+      <div className="w-full mt-1.5 bg-[#08090A] border border-[#272B33] rounded px-1.5 py-1 text-center font-mono ni-recessed transition-colors group-hover:border-white/30">
+        <div className="text-[10px] text-neutral-400 uppercase tracking-wider truncate font-semibold">{label}</div>
+        <div className="text-[12px] font-bold truncate" style={{ color: accent }}>{valueLabel}</div>
+      </div>
+    </div>
+  );
+}
 
 export default function Popup() {
   const [settings, setSettings] = useState<Settings>({
@@ -46,12 +136,17 @@ export default function Popup() {
     volumeDucking: 50,
     loggingEnabled: true,
     logLevel: "warn",
+    generateAfterSeconds: 10,
+    playBeforeEndSeconds: 30,
+    setupComplete: false,
     hostName: "Alexis",
     radioStation: "97.7 Youtube FM",
   });
 
   const [activeTab, setActiveTab] = useState<TabType>("PERSONA");
-  const [isOnAir, setIsOnAir] = useState(true);
+  const [isOnAir, setIsOnAir] = useState(false);
+  const [rjStatus, setRjStatus] = useState("standby");
+  const [rjStatusMessage, setRjStatusMessage] = useState("RJ mode is off");
   const [editingStation, setEditingStation] = useState(false);
   const [editingHost, setEditingHost] = useState(false);
   const [showKeys, setShowKeys] = useState({ gemini: false, fish: false, murf: false, openrouter: false });
@@ -63,14 +158,25 @@ export default function Popup() {
 
   const [testResult, setTestResult] = useState<string | null>(null);
   const [isTesting, setIsTesting] = useState(false);
+  const [providerTests, setProviderTests] = useState<Record<string, { success: boolean; at: string; provider: string }>>({});
+  const [exportOptions, setExportOptions] = useState({ titles: true, scripts: true, timestamps: true });
 
   const mainRef = useRef<HTMLElement>(null);
+  const restoreScrollTop = useRef(0);
+  const scrollSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const popupPreferencesLoaded = useRef(false);
   const [showScrollCue, setShowScrollCue] = useState(false);
 
   const checkScroll = () => {
     if (mainRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = mainRef.current;
       setShowScrollCue(scrollHeight - scrollTop - clientHeight > 35);
+      restoreScrollTop.current = scrollTop;
+      if (scrollSaveTimer.current) clearTimeout(scrollSaveTimer.current);
+      scrollSaveTimer.current = setTimeout(
+        () => chrome.storage.local.set({ popupScrollTop: restoreScrollTop.current }),
+        180
+      );
     }
   };
 
@@ -93,7 +199,79 @@ export default function Popup() {
         radioStation: stored.radioStation || "97.7 Youtube FM",
       }));
     });
+    chrome.storage.local.get(["popupActiveTab", "popupScrollTop", "providerTests"], (local) => {
+      if (local.popupActiveTab) setActiveTab(local.popupActiveTab as TabType);
+      restoreScrollTop.current = local.popupScrollTop || 0;
+      setProviderTests(local.providerTests || {});
+      popupPreferencesLoaded.current = true;
+      requestAnimationFrame(() => {
+        if (mainRef.current) {
+          mainRef.current.scrollTop = restoreScrollTop.current;
+          checkScroll();
+        }
+      });
+    });
+    void refreshRJStatus();
+    const onMessage = (message: any) => {
+      if (message?.action === "rjStatusChanged") {
+        setRjStatus(message.status || "standby");
+        setRjStatusMessage(message.message || "");
+        if (typeof message.active === "boolean") setIsOnAir(message.active);
+      }
+    };
+    chrome.runtime.onMessage.addListener(onMessage);
+    return () => chrome.runtime.onMessage.removeListener(onMessage);
   }, []);
+
+  useEffect(() => {
+    if (!popupPreferencesLoaded.current) return;
+    chrome.storage.local.set({ popupActiveTab: activeTab });
+    requestAnimationFrame(() => {
+      if (mainRef.current) {
+        mainRef.current.scrollTop = restoreScrollTop.current;
+        checkScroll();
+      }
+    });
+  }, [activeTab]);
+
+  const refreshRJStatus = async () => {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab?.id) return;
+      const response: any = await chrome.tabs.sendMessage(tab.id, { action: "getRJStatus" });
+      if (response?.success) {
+        setIsOnAir(response.active);
+        setRjStatus(response.status || (response.active ? "waiting" : "standby"));
+        setRjStatusMessage(response.message || "");
+      }
+    } catch {
+      setIsOnAir(false);
+      setRjStatus("standby");
+    }
+  };
+
+  const recordProviderTest = (service: string, provider: string, success: boolean) => {
+    setProviderTests((current) => {
+      const next = { ...current, [service]: { provider, success, at: new Date().toISOString() } };
+      chrome.storage.local.set({ providerTests: next });
+      return next;
+    });
+  };
+
+  const toggleRJMode = async () => {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab?.id) throw new Error("No active tab found.");
+      const response: any = await chrome.tabs.sendMessage(tab.id, { action: "toggleRJMode" });
+      if (!response?.success) throw new Error(response?.error || "Could not toggle RJ mode.");
+      setIsOnAir(response.active);
+      setRjStatus(response.status || (response.active ? "waiting" : "standby"));
+      setRjStatusMessage(response.message || (response.active ? "Waiting for the next track" : "RJ mode is off"));
+    } catch (error: any) {
+      showStatus(error?.message || "Open YouTube or YouTube Music to control RJ mode.", "error");
+      setIsOnAir(false);
+    }
+  };
 
   const showStatus = (message: string, type: "success" | "error") => {
     setStatus({ message, type });
@@ -112,7 +290,11 @@ export default function Popup() {
 
   const exportLogs = () => {
     chrome.storage.local.get(["commentaryLogs"], (result) => {
-      const logsData = result.commentaryLogs || [];
+      const logsData = (result.commentaryLogs || []).map((entry: any) => ({
+        ...(exportOptions.timestamps ? { timestamp: entry.timestamp } : {}),
+        ...(exportOptions.titles ? { currentSong: entry.currentSong, nextSong: entry.nextSong } : {}),
+        ...(exportOptions.scripts ? { script: entry.script } : {}),
+      }));
       const blob = new Blob([JSON.stringify(logsData, null, 2)], {
         type: "application/json",
       });
@@ -126,7 +308,13 @@ export default function Popup() {
     });
   };
 
-  const testLyrics = async () => {
+  const clearSessionLogs = () => {
+    chrome.storage.local.set({ commentaryLogs: [] }, () => {
+      showStatus("Commentary session logs cleared", "success");
+    });
+  };
+
+  const testLyrics = async (): Promise<boolean> => {
     setIsTesting(true);
     setTestResult("Connecting to LRCLIB API: querying 'Kalax - Out of Time'...");
     try {
@@ -134,14 +322,18 @@ export default function Popup() {
       setTestResult(
         lyrics ? "✅ LRCLIB 200 OK: Lyrics retrieved successfully." : "⚠️ LRCLIB 200 OK: Track found but no synced lyrics."
       );
+      recordProviderTest("lyrics", "LRCLIB", true);
+      return true;
     } catch (e: any) {
       setTestResult("❌ LRCLIB Error: " + (e?.message || e));
+      recordProviderTest("lyrics", "LRCLIB", false);
+      return false;
     } finally {
       setIsTesting(false);
     }
   };
 
-  const testTTS = async () => {
+  const testTTS = async (): Promise<boolean> => {
     setIsTesting(true);
     const provider = settings.ttsProvider || "fish-audio";
     setTestResult(`Initializing ${provider.toUpperCase()} TTS synthesis pipeline...`);
@@ -149,7 +341,8 @@ export default function Popup() {
       if (provider === "fish-audio") {
         if (!settings.fishApiKey) {
           setTestResult("❌ Fish Audio API Key missing in CLOUD APIS tab");
-          return;
+          recordProviderTest("tts", provider, false);
+          return false;
         }
         const tts = new FishAudioTTS();
         await tts.synthesize(
@@ -160,12 +353,15 @@ export default function Popup() {
         const audioBlob = tts.toBlob();
         const url = URL.createObjectURL(audioBlob);
         const audio = new Audio(url);
+        audio.onended = () => URL.revokeObjectURL(url);
         await audio.play();
         setTestResult("✅ Fish Audio: Audio stream decoded and playing.");
+        recordProviderTest("tts", provider, true);
       } else if (provider === "murf") {
         if (!settings.murfApiKey) {
           setTestResult("❌ Murf.ai API Key missing in CLOUD APIS tab");
-          return;
+          recordProviderTest("tts", provider, false);
+          return false;
         }
         const data = await APIUtils.callMurfAPI(
           "Welcome to the broadcast. This is a test of Murf.ai studio synthesis.",
@@ -175,19 +371,31 @@ export default function Popup() {
         );
         const url = URL.createObjectURL(data.audioBlob);
         const audio = new Audio(url);
+        audio.onended = () => URL.revokeObjectURL(url);
         await audio.play();
         setTestResult("✅ Murf.ai: Audio stream synthesized and playing.");
+        recordProviderTest("tts", provider, true);
       } else {
-        setTestResult("✅ Google TTS is ready (native browser speech synthesis).");
+        const tts = new GoogleTTS();
+        await tts.synthesize("Live from the control room. This is your YouTube Radio Jockey speaking!", settings.voiceId || "en");
+        const url = URL.createObjectURL(tts.toBlob());
+        const audio = new Audio(url);
+        audio.onended = () => URL.revokeObjectURL(url);
+        await audio.play();
+        setTestResult("✅ Google TTS: audio synthesized and playing.");
+        recordProviderTest("tts", provider, true);
       }
+      return true;
     } catch (e: any) {
       setTestResult("❌ TTS Synthesis Error: " + (e?.message || e));
+      recordProviderTest("tts", provider, false);
+      return false;
     } finally {
       setIsTesting(false);
     }
   };
 
-  const testLLM = async () => {
+  const testLLM = async (): Promise<boolean> => {
     setIsTesting(true);
     const provider = settings.llmProvider || "openrouter";
     setTestResult(`Dispatching test prompt to ${provider.toUpperCase()} LLM...`);
@@ -196,7 +404,8 @@ export default function Popup() {
       if (provider === "openrouter") {
         if (!settings.openRouterApiKey) {
           setTestResult("❌ OpenRouter API Key missing in CLOUD APIS tab");
-          return;
+          recordProviderTest("llm", provider, false);
+          return false;
         }
         const response = await APIUtils.callOpenRouterAPI(
           "You are a witty radio DJ.",
@@ -205,25 +414,32 @@ export default function Popup() {
           settings.openRouterModel
         );
         setTestResult(`✅ OpenRouter (${settings.openRouterModel}): ${response}`);
+        recordProviderTest("llm", provider, true);
       } else if (provider === "gemini") {
         if (!settings.geminiApiKey) {
           setTestResult("❌ Gemini API Key missing in CLOUD APIS tab");
-          return;
+          recordProviderTest("llm", provider, false);
+          return false;
         }
         const response = await APIUtils.callGeminiAPI(
           "Say hello as a radio DJ in one punchy sentence.",
           settings.geminiApiKey
         );
         setTestResult("✅ Gemini: " + response);
+        recordProviderTest("llm", provider, true);
       } else {
         const response = await APIUtils.callChatJimmyAPI(
           "You are a witty radio DJ.",
           "Say hello as a radio DJ in one punchy sentence."
         );
         setTestResult("✅ ChatJimmy: " + response);
+        recordProviderTest("llm", provider, true);
       }
+      return true;
     } catch (e: any) {
       setTestResult("❌ LLM Error: " + (e?.message || e));
+      recordProviderTest("llm", provider, false);
+      return false;
     } finally {
       setIsTesting(false);
     }
@@ -277,61 +493,40 @@ export default function Popup() {
     }
   };
 
-  // Macro Knob Helpers
+  const testCommentary = async () => {
+    setIsTesting(true);
+    setTestResult("Generating a one-off commentary preview for the current video...");
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab?.id) throw new Error("No active tab found.");
+      const response: any = await chrome.tabs.sendMessage(tab.id, { action: "testCommentary" });
+      if (!response?.success) throw new Error(response?.error || "Commentary preview failed.");
+      setTestResult("✅ Test commentary generated and played.");
+    } catch (error: any) {
+      setTestResult("❌ " + (error?.message || String(error)));
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  const runSetupChecks = async () => {
+    const llmOkay = await testLLM();
+    const ttsOkay = await testTTS();
+    if (llmOkay && ttsOkay) {
+      const completeSettings = { ...settings, setupComplete: true };
+      setSettings(completeSettings);
+      chrome.storage.sync.set(completeSettings);
+      showStatus("Station setup complete", "success");
+    }
+  };
+
+  // Rotary encoder value ranges
   const stylesList = ["sarcastic", "energetic", "chill", "professional"];
-  const cycleStyle = () => {
-    const currentIndex = stylesList.indexOf(settings.rjStyle.toLowerCase());
-    const nextStyle = stylesList[(currentIndex + 1) % stylesList.length];
-    setSettings((s) => ({ ...s, rjStyle: nextStyle }));
-  };
-
   const lengthsList = ["short", "medium", "long"];
-  const cycleLength = () => {
-    const currentIndex = lengthsList.indexOf(settings.commentaryLength);
-    const nextLength = lengthsList[(currentIndex + 1) % lengthsList.length];
-    setSettings((s) => ({ ...s, commentaryLength: nextLength }));
-  };
-
   const enginesList: Settings["ttsProvider"][] = ["fish-audio", "murf", "google-tts"];
-  const cycleEngine = () => {
-    const currentIndex = enginesList.indexOf(settings.ttsProvider);
-    const nextEngine = enginesList[(currentIndex + 1) % enginesList.length];
-    setSettings((s) => ({
-      ...s,
-      ttsProvider: nextEngine,
-      voiceId:
-        nextEngine === "fish-audio"
-          ? "ba1a38946dea44609fc4a8fe6113ed88"
-          : nextEngine === "murf"
-            ? "en-US-natalie"
-            : "en-US",
-    }));
-  };
-
-  const cycleDucking = () => {
-    const step = settings.volumeDucking >= 80 ? 20 : settings.volumeDucking + 20;
-    setSettings((s) => ({ ...s, volumeDucking: step }));
-  };
-
-  // Knob Arc Offsets
-  const styleOffsets: Record<string, number> = {
-    sarcastic: 65,
-    energetic: 36,
-    chill: 95,
-    professional: 120,
-  };
-  const lengthOffsets: Record<string, number> = {
-    short: 85,
-    medium: 65,
-    long: 36,
-  };
-  const duckingOffset = Math.round(144 - (settings.volumeDucking / 100) * 108);
-  const engineOffsets: Record<string, number> = {
-    "fish-audio": 50,
-    murf: 80,
-    "google-tts": 115,
-  };
-
+  const duckingOptions = Array.from({ length: 11 }, (_, index) => index * 10);
+  const generateTimingOptions = [5, 10, 15, 20, 30];
+  const playTimingOptions = [15, 20, 30, 40, 50, 60];
   const duckingDb = -Math.round((settings.volumeDucking / 100) * 24);
 
   return (
@@ -371,7 +566,8 @@ export default function Popup() {
             {/* Master ON-AIR Light Switch */}
             <button
               id="onAirBtn"
-              onClick={() => setIsOnAir(!isOnAir)}
+              onClick={toggleRJMode}
+              aria-label={isOnAir ? "Stop RJ mode" : "Start RJ mode"}
               className={`flex items-center gap-2 px-3 py-1 bg-[#141518] hover:bg-[#1a1c21] border rounded text-slate-100 transition-all active:scale-95 cursor-pointer ${isOnAir ? "border-[#00D2C4]/70 glow-cyan-subtle" : "border-neutral-700 opacity-60"
                 }`}
             >
@@ -390,7 +586,7 @@ export default function Popup() {
             <button
               id="saveConfigBtn"
               onClick={saveSettings}
-              className="py-1 px-3 bg-[#00D2C4] hover:bg-[#12e6d8] text-neutral-950 font-bold rounded flex items-center justify-center gap-1.5 transition-all active:scale-95 glow-cyan-subtle cursor-pointer font-mono shadow-[0_0_8px_rgba(0,210,196,0.3)]"
+              className="py-1 px-3 bg-[#006B66] hover:bg-[#008078] text-white border border-[#00D2C4] font-bold rounded flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer font-mono shadow-[0_0_8px_rgba(0,210,196,0.3)]"
               title="Save configuration to storage"
             >
               <span className="material-symbols-outlined text-[16px]">check_circle</span>
@@ -415,6 +611,11 @@ export default function Popup() {
             </span>
             <span className="text-[10.5px] text-[#00D2C4] font-bold">[SYNCED]</span>
           </div>
+        </div>
+        <div className="mt-1 flex items-center gap-2 text-[10px] font-mono text-neutral-400" title={rjStatusMessage}>
+          <span className={`w-1.5 h-1.5 rounded-full ${rjStatus === "error" ? "bg-rose-400" : rjStatus === "playing" ? "bg-[#00D2C4] animate-pulse" : "bg-neutral-500"}`}></span>
+          <span>{rjStatus.toUpperCase()}</span>
+          <span className="truncate">{rjStatusMessage || "Open a playlist to begin"}</span>
         </div>
       </header>
 
@@ -445,6 +646,19 @@ export default function Popup() {
           {/* TAB 1: PERSONA */}
           {activeTab === "PERSONA" && (
             <div className="space-y-3">
+              {!settings.setupComplete && (
+                <section className="bg-[#10201F] border border-[#00D2C4]/50 rounded p-3 space-y-2">
+                  <div className="text-[12px] text-[#00D2C4] font-bold tracking-wider">FIRST-RUN STATION SETUP</div>
+                  <p className="text-[11px] text-neutral-300">Choose your LLM and voice providers, add any required API keys, then run both checks to finish setup.</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button onClick={() => setActiveTab("LLM")} className="rounded border border-[#343840] bg-[#0b1111] px-2 py-1.5 text-[10px] font-bold">1. LLM</button>
+                    <button onClick={() => setActiveTab("TTS")} className="rounded border border-[#343840] bg-[#0b1111] px-2 py-1.5 text-[10px] font-bold">2. VOICE</button>
+                    <button onClick={runSetupChecks} disabled={isTesting} className="rounded border border-[#00D2C4] text-[#00D2C4] px-2 py-1.5 text-[10px] font-bold disabled:opacity-50">3. TEST</button>
+                  </div>
+                  <div className="text-[10px] text-neutral-400">{settings.llmProvider.toUpperCase()} LLM · {settings.ttsProvider.toUpperCase()} voice</div>
+                </section>
+              )}
+
               {/* Signature NI 4-Macro Parameter Strip (Top Hardware Row) */}
               <section className="px-3.5 py-2.5 bg-gradient-to-b from-[#14161a] to-[#0F1012] border-b border-[#272B33] flex-shrink-0">
                 <div className="flex items-center justify-between mb-1.5 px-0.5">
@@ -455,89 +669,42 @@ export default function Popup() {
                 {/* 4 Knobs Grid */}
                 <div className="grid grid-cols-4 gap-3">
 
-                  {/* Knob 1: STYLE */}
-                  <div onClick={cycleStyle} className="flex flex-col items-center group cursor-pointer" title="Click to cycle Style preset">
-                    <div className="relative w-14 h-14 flex items-center justify-center">
-                      <svg className="w-14 h-14 -rotate-90 transform" viewBox="0 0 60 60">
-                        <circle cx="30" cy="30" r="23" stroke="#252830" strokeWidth="3" fill="none" strokeDasharray="144" strokeDashoffset="36" strokeLinecap="round" />
-                        <circle cx="30" cy="30" r="23" stroke="#00D2C4" strokeWidth="3" fill="none" strokeDasharray="144" strokeDashoffset={styleOffsets[settings.rjStyle.toLowerCase()] || 65} strokeLinecap="round" className="filter drop-shadow-[0_0_4px_rgba(0,210,196,0.8)] transition-all duration-300" />
-                      </svg>
-                      <div className="absolute w-9 h-9 rounded-full bg-gradient-to-br from-[#2a2d34] via-[#1a1b1f] to-[#0c0d0f] border border-neutral-600 knob-radial-shadow flex items-center justify-center group-hover:scale-105 transition-transform">
-                        <div className="w-full h-full rounded-full border border-white/10 flex items-center justify-center relative">
-                          <div className="w-0.5 h-3 bg-[#00D2C4] rounded-full absolute top-1 shadow-[0_0_4px_#00D2C4]"></div>
-                          <div className="w-3 h-3 rounded-full bg-[#111215] border border-neutral-700"></div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="w-full mt-1.5 bg-[#08090A] border border-[#272B33] rounded px-1.5 py-1 text-center font-mono ni-recessed transition-colors group-hover:border-[#00D2C4]/60">
-                      <div className="text-[10px] text-neutral-400 uppercase tracking-wider truncate font-semibold">STYLE</div>
-                      <div className="text-[12px] text-[#00D2C4] font-bold truncate uppercase">{settings.rjStyle}</div>
-                    </div>
-                  </div>
-
-                  {/* Knob 2: DURATION */}
-                  <div onClick={cycleLength} className="flex flex-col items-center group cursor-pointer" title="Click to cycle Commentary Duration">
-                    <div className="relative w-14 h-14 flex items-center justify-center">
-                      <svg className="w-14 h-14 -rotate-90 transform" viewBox="0 0 60 60">
-                        <circle cx="30" cy="30" r="23" stroke="#252830" strokeWidth="3" fill="none" strokeDasharray="144" strokeDashoffset="36" strokeLinecap="round" />
-                        <circle cx="30" cy="30" r="23" stroke="#00D2C4" strokeWidth="3" fill="none" strokeDasharray="144" strokeDashoffset={lengthOffsets[settings.commentaryLength] || 65} strokeLinecap="round" className="filter drop-shadow-[0_0_4px_rgba(0,210,196,0.8)] transition-all duration-300" />
-                      </svg>
-                      <div className="absolute w-9 h-9 rounded-full bg-gradient-to-br from-[#2a2d34] via-[#1a1b1f] to-[#0c0d0f] border border-neutral-600 knob-radial-shadow flex items-center justify-center group-hover:scale-105 transition-transform">
-                        <div className="w-full h-full rounded-full border border-white/10 flex items-center justify-center relative">
-                          <div className="w-0.5 h-3 bg-[#00D2C4] rounded-full absolute top-1 shadow-[0_0_4px_#00D2C4]"></div>
-                          <div className="w-3 h-3 rounded-full bg-[#111215] border border-neutral-700"></div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="w-full mt-1.5 bg-[#08090A] border border-[#272B33] rounded px-1.5 py-1 text-center font-mono ni-recessed transition-colors group-hover:border-[#00D2C4]/60">
-                      <div className="text-[10px] text-neutral-400 uppercase tracking-wider truncate font-semibold">DURATION</div>
-                      <div className="text-[12px] text-slate-100 font-bold truncate uppercase">
-                        {settings.commentaryLength === "short" ? "25 SEC" : settings.commentaryLength === "medium" ? "35 SEC" : "50 SEC"}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Knob 3: DUCKING */}
-                  <div onClick={cycleDucking} className="flex flex-col items-center group cursor-pointer" title="Click to step Ducking attenuation">
-                    <div className="relative w-14 h-14 flex items-center justify-center">
-                      <svg className="w-14 h-14 -rotate-90 transform" viewBox="0 0 60 60">
-                        <circle cx="30" cy="30" r="23" stroke="#252830" strokeWidth="3" fill="none" strokeDasharray="144" strokeDashoffset="36" strokeLinecap="round" />
-                        <circle cx="30" cy="30" r="23" stroke="#FF9E1B" strokeWidth="3" fill="none" strokeDasharray="144" strokeDashoffset={duckingOffset} strokeLinecap="round" className="filter drop-shadow-[0_0_4px_rgba(255,158,27,0.8)] transition-all duration-300" />
-                      </svg>
-                      <div className="absolute w-9 h-9 rounded-full bg-gradient-to-br from-[#2a2d34] via-[#1a1b1f] to-[#0c0d0f] border border-neutral-600 knob-radial-shadow flex items-center justify-center group-hover:scale-105 transition-transform">
-                        <div className="w-full h-full rounded-full border border-white/10 flex items-center justify-center relative">
-                          <div className="w-0.5 h-3 bg-[#FF9E1B] rounded-full absolute top-1 shadow-[0_0_4px_#FF9E1B]"></div>
-                          <div className="w-3 h-3 rounded-full bg-[#111215] border border-neutral-700"></div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="w-full mt-1.5 bg-[#08090A] border border-[#272B33] rounded px-1.5 py-1 text-center font-mono ni-recessed transition-colors group-hover:border-[#FF9E1B]/60">
-                      <div className="text-[10px] text-neutral-400 uppercase tracking-wider truncate font-semibold">DUCKING</div>
-                      <div className="text-[12px] text-[#FF9E1B] font-bold truncate">{duckingDb} dB ({settings.volumeDucking}%)</div>
-                    </div>
-                  </div>
-
-                  {/* Knob 4: ENGINE */}
-                  <div onClick={cycleEngine} className="flex flex-col items-center group cursor-pointer" title="Click to cycle TTS engine">
-                    <div className="relative w-14 h-14 flex items-center justify-center">
-                      <svg className="w-14 h-14 -rotate-90 transform" viewBox="0 0 60 60">
-                        <circle cx="30" cy="30" r="23" stroke="#252830" strokeWidth="3" fill="none" strokeDasharray="144" strokeDashoffset="36" strokeLinecap="round" />
-                        <circle cx="30" cy="30" r="23" stroke="#00D2C4" strokeWidth="3" fill="none" strokeDasharray="144" strokeDashoffset={engineOffsets[settings.ttsProvider] || 50} strokeLinecap="round" className="filter drop-shadow-[0_0_4px_rgba(0,210,196,0.8)] transition-all duration-300" />
-                      </svg>
-                      <div className="absolute w-9 h-9 rounded-full bg-gradient-to-br from-[#2a2d34] via-[#1a1b1f] to-[#0c0d0f] border border-neutral-600 knob-radial-shadow flex items-center justify-center group-hover:scale-105 transition-transform">
-                        <div className="w-full h-full rounded-full border border-white/10 flex items-center justify-center relative">
-                          <div className="w-0.5 h-3 bg-[#00D2C4] rounded-full absolute top-1 shadow-[0_0_4px_#00D2C4]"></div>
-                          <div className="w-3 h-3 rounded-full bg-[#111215] border border-neutral-700"></div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="w-full mt-1.5 bg-[#08090A] border border-[#272B33] rounded px-1.5 py-1 text-center font-mono ni-recessed transition-colors group-hover:border-[#00D2C4]/60">
-                      <div className="text-[10px] text-neutral-400 uppercase tracking-wider truncate font-semibold">ENGINE</div>
-                      <div className="text-[12px] text-[#00D2C4] font-bold truncate uppercase">
-                        {settings.ttsProvider === "fish-audio" ? "FISH AUDIO" : settings.ttsProvider === "murf" ? "MURF.AI" : "GOOGLE TTS"}
-                      </div>
-                    </div>
-                  </div>
+                  <RotaryKnob
+                    label="STYLE"
+                    options={stylesList}
+                    value={settings.rjStyle}
+                    valueLabel={settings.rjStyle.toUpperCase()}
+                    onChange={(value) => setSettings((current) => ({ ...current, rjStyle: String(value) }))}
+                  />
+                  <RotaryKnob
+                    label="DURATION"
+                    options={lengthsList}
+                    value={settings.commentaryLength}
+                    valueLabel={`${settings.commentaryLength === "short" ? 25 : settings.commentaryLength === "medium" ? 35 : 50} SEC`}
+                    onChange={(value) => setSettings((current) => ({ ...current, commentaryLength: String(value) }))}
+                  />
+                  <RotaryKnob
+                    label="DUCKING"
+                    options={duckingOptions}
+                    value={Math.max(0, Math.min(100, Math.round(settings.volumeDucking / 10) * 10))}
+                    valueLabel={`${-Math.round((settings.volumeDucking / 100) * 24)} dB (${settings.volumeDucking}%)`}
+                    accent="#FF9E1B"
+                    onChange={(value) => setSettings((current) => ({ ...current, volumeDucking: Number(value) }))}
+                  />
+                  <RotaryKnob
+                    label="ENGINE"
+                    options={enginesList}
+                    value={settings.ttsProvider}
+                    valueLabel={settings.ttsProvider === "fish-audio" ? "FISH AUDIO" : settings.ttsProvider === "murf" ? "MURF.AI" : "GOOGLE TTS"}
+                    onChange={(value) => {
+                      const nextEngine = value as Settings["ttsProvider"];
+                      setSettings((current) => ({
+                        ...current,
+                        ttsProvider: nextEngine,
+                        voiceId: nextEngine === "fish-audio" ? "ba1a38946dea44609fc4a8fe6113ed88" : nextEngine === "murf" ? "en-US-natalie" : "en-US",
+                      }));
+                    }}
+                  />
 
                 </div>
               </section>
@@ -702,6 +869,28 @@ export default function Popup() {
 
                 </div>
               </div>
+
+              <section className="bg-[#0F1012] border border-[#272B33] rounded p-3">
+                <div className="text-[11.5px] text-neutral-300 tracking-wider font-bold mb-2">COMMENTARY TIMING</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <RotaryKnob
+                    label="GENERATE AFTER"
+                    options={generateTimingOptions}
+                    value={settings.generateAfterSeconds}
+                    valueLabel={`${settings.generateAfterSeconds} SEC`}
+                    onChange={(value) => setSettings((current) => ({ ...current, generateAfterSeconds: Number(value) }))}
+                  />
+                  <RotaryKnob
+                    label="PLAY BEFORE END"
+                    options={playTimingOptions}
+                    value={settings.playBeforeEndSeconds}
+                    valueLabel={`${settings.playBeforeEndSeconds} SEC`}
+                    accent="#FF9E1B"
+                    onChange={(value) => setSettings((current) => ({ ...current, playBeforeEndSeconds: Number(value) }))}
+                  />
+                </div>
+                <div className="text-[10px] text-neutral-500 mt-1">Save configuration to apply timing to active playback.</div>
+              </section>
             </div>
           )}
 
@@ -750,9 +939,12 @@ export default function Popup() {
 
               {/* Voice ID input */}
               <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 ni-recessed">
-                <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase mb-1.5 block font-bold">
-                  {settings.ttsProvider === "fish-audio" ? "FISH AUDIO REFERENCE ID" : "VOICE MODEL / CODE"}
-                </span>
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className="text-[11.5px] text-neutral-400 tracking-wider uppercase font-bold">
+                    {settings.ttsProvider === "fish-audio" ? "FISH AUDIO REFERENCE ID" : "VOICE MODEL / CODE"}
+                  </span>
+                  <button onClick={testTTS} disabled={isTesting} className="text-[10px] font-bold text-[#00D2C4] border border-[#00D2C4]/50 rounded px-2 py-1 disabled:opacity-50">PREVIEW VOICE</button>
+                </div>
                 <input
                   type="text"
                   value={settings.voiceId}
@@ -990,6 +1182,29 @@ export default function Popup() {
           {/* TAB 4: DIAGNOSTICS */}
           {activeTab === "DIAGNOSTICS" && (
             <div className="space-y-3 font-mono">
+              <section className="bg-[#0F1012] border border-[#272B33] rounded p-3 space-y-1.5">
+                <div className="text-[11px] text-neutral-300 font-bold tracking-wider mb-2">SELECTED PROVIDER STATUS</div>
+                <div className="flex justify-between text-[10.5px]">
+                  <span>LLM · {settings.llmProvider.toUpperCase()}</span>
+                  <span className={settings.llmProvider === "chatjimmy" || (settings.llmProvider === "openrouter" ? !!settings.openRouterApiKey : !!settings.geminiApiKey) ? "text-emerald-300" : "text-rose-300"}>
+                    {settings.llmProvider === "chatjimmy" || (settings.llmProvider === "openrouter" ? !!settings.openRouterApiKey : !!settings.geminiApiKey) ? "CONFIGURED" : "API KEY NEEDED"}
+                  </span>
+                </div>
+                <div className="flex justify-between text-[10.5px]">
+                  <span>TTS · {settings.ttsProvider.toUpperCase()}</span>
+                  <span className={settings.ttsProvider === "google-tts" || (settings.ttsProvider === "fish-audio" ? !!settings.fishApiKey : !!settings.murfApiKey) ? "text-emerald-300" : "text-rose-300"}>
+                    {settings.ttsProvider === "google-tts" || (settings.ttsProvider === "fish-audio" ? !!settings.fishApiKey : !!settings.murfApiKey) ? "CONFIGURED" : "API KEY NEEDED"}
+                  </span>
+                </div>
+                {(["llm", "tts", "lyrics"] as const).map((service) => {
+                  const check = providerTests[service];
+                  return <div key={service} className="flex justify-between text-[10px] text-neutral-500">
+                    <span>{service.toUpperCase()} LAST TEST {check ? `· ${check.provider}` : "· NEVER"}</span>
+                    <span className={check?.success ? "text-emerald-400" : check ? "text-rose-300" : ""}>{check ? `${check.success ? "PASS" : "FAIL"} · ${new Date(check.at).toLocaleString()}` : ""}</span>
+                  </div>;
+                })}
+              </section>
+
               <section className="bg-[#0F1012] border border-[#272B33] rounded p-3 space-y-2">
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -1064,6 +1279,9 @@ export default function Popup() {
                   PLAY RJ COMMENTARY
                 </button>
               </div>
+              <button onClick={testCommentary} disabled={isTesting} className="w-full py-2.5 px-2 bg-[#1A1C20] hover:bg-[#252830] text-cyan-200 border border-cyan-500/50 rounded text-[12px] font-bold tracking-wider disabled:opacity-50">
+                GENERATE & PLAY TEST COMMENTARY
+              </button>
 
               {/* Diagnostics Terminal Output */}
               <div className="bg-[#08090A] border border-[#272B33] rounded p-3 ni-recessed text-[12.5px] min-h-[110px] max-h-[130px] overflow-y-auto space-y-1.5">
@@ -1088,14 +1306,19 @@ export default function Popup() {
                 )}
               </div>
 
-              {/* Export Commentary Logs */}
-              <button
-                onClick={exportLogs}
-                className="w-full py-2 px-3 bg-[#0F1012] hover:bg-[#1f2229] text-slate-200 font-bold border border-[#272B33] rounded flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[18px] text-[#00D2C4]">download</span>
-                <span className="text-[12px] tracking-wider uppercase font-bold">EXPORT COMMENTARY LOGS (JSON)</span>
-              </button>
+              <div className="bg-[#0F1012] border border-[#272B33] rounded p-3 space-y-2">
+                <div className="text-[11px] text-neutral-300 font-bold tracking-wider">COMMENTARY LOG EXPORT</div>
+                <div className="flex gap-3 text-[10px] text-neutral-400">
+                  {(["titles", "scripts", "timestamps"] as const).map((key) => <label key={key} className="flex items-center gap-1 cursor-pointer">
+                    <input type="checkbox" checked={exportOptions[key]} onChange={(event) => setExportOptions((current) => ({ ...current, [key]: event.target.checked }))} className="accent-[#00D2C4]" />
+                    {key.toUpperCase()}
+                  </label>)}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={exportLogs} className="py-2 px-2 bg-[#15181c] text-slate-200 border border-[#343840] rounded text-[10px] font-bold">EXPORT JSON</button>
+                  <button onClick={clearSessionLogs} className="py-2 px-2 bg-[#15181c] text-rose-300 border border-rose-900/70 rounded text-[10px] font-bold">CLEAR SESSION LOGS</button>
+                </div>
+              </div>
             </div>
           )}
         </main>
