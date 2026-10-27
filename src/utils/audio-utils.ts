@@ -6,13 +6,14 @@ declare global {
 }
 
 // Audio-related utility functions
+import Logger from "./logger";
 const AudioUtils = {
   // Create audio context with fallbacks
   createAudioContext() {
     try {
       return new (window.AudioContext || window.webkitAudioContext )();
     } catch (error) {
-      console.error("Audio context creation failed:", error);
+      Logger.error("Audio context creation failed", error);
       return null;
     }
   },
@@ -30,15 +31,18 @@ const AudioUtils = {
     const volumeStep = (targetVolume - startVolume) / steps;
     const timeStep = duration / steps;
 
-    for (let i = 0; i < steps; i++) {
-      setTimeout(() => {
-        const newVolume = Math.max(
-          0,
-          Math.min(1, startVolume + volumeStep * (i + 1))
-        );
-        video.volume = newVolume;
-      }, timeStep * i);
-    }
+    await new Promise<void>((resolve) => {
+      for (let i = 0; i < steps; i++) {
+        setTimeout(() => {
+          const newVolume = Math.max(
+            0,
+            Math.min(1, startVolume + volumeStep * (i + 1))
+          );
+          video.volume = newVolume;
+          if (i === steps - 1) resolve();
+        }, timeStep * (i + 1));
+      }
+    });
   },
 
   // Duck volume smoothly
@@ -63,7 +67,7 @@ const AudioUtils = {
 
     // Add error handling
     audio.addEventListener("error", (error) => {
-      console.error("Audio playback error:", error);
+      Logger.error("Commentary audio element reported an error", error);
       URL.revokeObjectURL(audioUrl);
     });
 

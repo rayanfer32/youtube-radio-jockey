@@ -1,16 +1,16 @@
 // Background script for handling extension lifecycle and API management
 import * as googleTTS from "google-tts-api";
 
-chrome.runtime.onInstalled.addListener(async (details) => {
-  console.log("YouTube RJ Mode extension event:", details.reason);
-
+chrome.runtime.onInstalled.addListener(async () => {
   // Preserve existing settings across reloads/updates; only fill in missing fields
   const existing = await chrome.storage.sync.get();
   chrome.storage.sync.set({
     commentaryLength: existing.commentaryLength ?? "short",
     rjStyle: existing.rjStyle ?? "sarcastic",
     voiceGender: existing.voiceGender ?? "male",
-    volumeDucking: existing.volumeDucking ?? 70,
+    volumeDucking: existing.volumeDucking ?? 50,
+    loggingEnabled: existing.loggingEnabled ?? true,
+    logLevel: existing.logLevel ?? "warn",
     darkMode: existing.darkMode ?? false,
     autoStart: existing.autoStart ?? false,
     ttsProvider: existing.ttsProvider ?? "fish-audio",

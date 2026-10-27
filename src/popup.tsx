@@ -19,6 +19,8 @@ export interface Settings {
   includeComments: boolean;
   autoStart: boolean;
   volumeDucking: number;
+  loggingEnabled: boolean;
+  logLevel: "debug" | "info" | "warn" | "error";
   hostName: string;
   radioStation: string;
 }
@@ -40,8 +42,10 @@ export default function Popup() {
     voiceStyle: "Promo",
     includeHistory: false,
     includeComments: false,
-    autoStart: true,
+    autoStart: false,
     volumeDucking: 50,
+    loggingEnabled: true,
+    logLevel: "warn",
     hostName: "Alexis",
     radioStation: "97.7 Youtube FM",
   });
@@ -986,6 +990,39 @@ export default function Popup() {
           {/* TAB 4: DIAGNOSTICS */}
           {activeTab === "DIAGNOSTICS" && (
             <div className="space-y-3 font-mono">
+              <section className="bg-[#0F1012] border border-[#272B33] rounded p-3 space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-[12px] text-slate-100 font-bold tracking-wider">RUNTIME LOGGER</div>
+                    <div className="text-[10.5px] text-neutral-400">Controls extension console output</div>
+                  </div>
+                  <label className="flex items-center gap-2 text-[11px] text-neutral-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.loggingEnabled}
+                      onChange={(event) => setSettings((current) => ({ ...current, loggingEnabled: event.target.checked }))}
+                      className="accent-[#00D2C4]"
+                    />
+                    ENABLED
+                  </label>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[11px] text-neutral-400">MINIMUM LEVEL</span>
+                  <select
+                    value={settings.logLevel}
+                    disabled={!settings.loggingEnabled}
+                    onChange={(event) => setSettings((current) => ({ ...current, logLevel: event.target.value as Settings["logLevel"] }))}
+                    className="bg-[#08090A] text-slate-100 border border-[#343840] rounded px-2 py-1 text-[11px] disabled:opacity-50"
+                  >
+                    <option value="debug">DEBUG</option>
+                    <option value="info">INFO</option>
+                    <option value="warn">WARN</option>
+                    <option value="error">ERROR</option>
+                  </select>
+                </div>
+                <div className="text-[10px] text-neutral-500">Save configuration to apply logger changes to open YouTube tabs.</div>
+              </section>
+
               <div className="grid grid-cols-3 gap-2.5">
                 <button
                   onClick={testLyrics}

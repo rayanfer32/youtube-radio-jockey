@@ -4,9 +4,7 @@
   "version": "1.0.8",
   "description": "Transform your YouTube playlists with AI-powered Radio Jockey commentary",
   "permissions": [
-    "activeTab",
-    "storage",
-    "scripting"
+    "storage"
   ],
   "host_permissions": [
     "https://www.youtube.com/*",

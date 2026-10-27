@@ -1,3 +1,5 @@
+import Logger from "./logger";
+
 export class FishAudioTTS {
   private audioBlob: Blob | null = null;
 
@@ -20,12 +22,12 @@ export class FishAudioTTS {
         },
         (response) => {
           if (chrome.runtime.lastError) {
-            console.error("Fish Audio Runtime Error:", chrome.runtime.lastError);
+            Logger.error("Fish Audio runtime messaging failed", chrome.runtime.lastError);
             return reject(new Error(chrome.runtime.lastError.message));
           }
 
           if (!response || !response.success) {
-            console.error("Fish Audio API Error:", response?.error);
+            Logger.error("Fish Audio request failed", response?.error);
             return reject(
               new Error(response?.error || "Failed to get Fish Audio TTS")
             );
@@ -42,7 +44,7 @@ export class FishAudioTTS {
             this.audioBlob = new Blob([bytes], { type: "audio/mp3" });
             resolve();
           } catch (error) {
-            console.error("Error processing Fish Audio data:", error);
+            Logger.error("Could not decode Fish Audio data", error);
             reject(error);
           }
         }

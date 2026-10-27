@@ -1,4 +1,5 @@
 // API-related utility functions
+import Logger from "./logger";
 
 export const DEFAULT_SETTINGS = {
   geminiApiKey: "",
@@ -16,6 +17,8 @@ export const DEFAULT_SETTINGS = {
   includeComments: false,
   autoStart: false,
   volumeDucking: 50,
+  loggingEnabled: true,
+  logLevel: "warn" as const,
   hostName: "Alexis",
   radioStation: "97.7 Youtube FM",
 };
@@ -316,7 +319,7 @@ function logCommentary(currentSong: string, nextSong: string, script: string) {
       nextSong,
       script,
     })
-    .catch(console.error);
+    .catch((error) => Logger.error("Failed to save commentary log", error));
 }
 
 async function callLyricsAPI(query: string) {
@@ -335,7 +338,6 @@ async function callLyricsAPI(query: string) {
         }
 
         const data = response.data;
-        console.log("Lyrics API response:", data);
         resolve(data?.[0]?.plainLyrics);
       }
     );

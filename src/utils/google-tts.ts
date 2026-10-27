@@ -1,4 +1,6 @@
 
+import Logger from "./logger";
+
 export class GoogleTTS {
   private audioBlob: Blob | null = null;
 
@@ -11,12 +13,12 @@ export class GoogleTTS {
         },
         (response) => {
           if (chrome.runtime.lastError) {
-            console.error("TTS Runtime Error:", chrome.runtime.lastError);
+            Logger.error("Google TTS runtime messaging failed", chrome.runtime.lastError);
             return reject(new Error(chrome.runtime.lastError.message));
           }
 
           if (!response || !response.success) {
-            console.error("TTS API Error:", response?.error);
+            Logger.error("Google TTS request failed", response?.error);
             return reject(new Error(response?.error || "Failed to get TTS audio"));
           }
 
@@ -34,7 +36,7 @@ export class GoogleTTS {
             this.audioBlob = new Blob(audioChunks, { type: "audio/mpeg" });
             resolve();
           } catch (error) {
-            console.error("Error processing TTS audio data:", error);
+            Logger.error("Could not decode Google TTS audio", error);
             reject(error);
           }
         }
