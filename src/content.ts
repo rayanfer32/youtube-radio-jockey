@@ -69,7 +69,6 @@ class YouTubeRJMode {
 
   async init() {
     this.setupAudioContext();
-    this.detectPlaylist();
     DomUtils.createRJModeButton(this.toggleRJMode.bind(this));
 
     const settings = await APIUtils.getAPISettings();
@@ -91,16 +90,6 @@ class YouTubeRJMode {
     this.audioContext = AudioUtils.createAudioContext();
     if (this.audioContext) {
       this.gainNode = this.audioContext.createGain();
-    }
-  }
-
-  detectPlaylist() {
-    // Use YouTube utility function
-    if (
-      YouTubeUtils.isPlaylistPage() &&
-      !document.getElementById("rj-mode-button")
-    ) {
-      DomUtils.showRJModePrompt(this.toggleRJMode.bind(this));
     }
   }
 
@@ -170,6 +159,13 @@ class YouTubeRJMode {
 
       // Use API utility functions
       const settings = await APIUtils.getAPISettings();
+      const enabledExtras: Array<"joke" | "advertisement"> = [];
+      if (settings.includeJokes) enabledExtras.push("joke");
+      if (settings.includeAdvertisements) enabledExtras.push("advertisement");
+      const extraContentType = enabledExtras.length > 0 &&
+        Math.random() * 100 < Math.max(0, Math.min(100, Number(settings.extraContentFrequency ?? 50)))
+        ? enabledExtras[Math.floor(Math.random() * enabledExtras.length)]
+        : null;
       const { systemPrompt, currentTask } = APIUtils.generateRJPrompt(
         this.currentVideoTitle,
         this.nextVideoTitle,
@@ -179,7 +175,9 @@ class YouTubeRJMode {
         settings.includeComments ? YouTubeUtils.getComments().join("\n") : "",
         currentSonglyrics as string,
         settings.hostName,
-        settings.radioStation
+        settings.radioStation,
+        settings.customSystemPrompt,
+        extraContentType
       );
 
       const script = await APIUtils.callLLM(systemPrompt, currentTask, settings);

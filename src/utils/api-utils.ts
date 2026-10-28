@@ -11,6 +11,10 @@ export const DEFAULT_SETTINGS = {
   ttsProvider: "fish-audio" as const,
   rjStyle: "sarcastic",
   commentaryLength: "short",
+  customSystemPrompt: "",
+  includeJokes: true,
+  includeAdvertisements: true,
+  extraContentFrequency: 50,
   voiceId: "ba1a38946dea44609fc4a8fe6113ed88",
   voiceStyle: "Promo",
   includeHistory: false,
@@ -57,7 +61,9 @@ function generateRJPrompt(
   comments: string | null,
   currentSonglyrics: string | null,
   hostName?: string,
-  radioStation?: string
+  radioStation?: string,
+  customSystemPrompt?: string,
+  extraContentType?: "joke" | "advertisement" | null
 ): { systemPrompt: string; currentTask: string } {
   const basePrompt = stylePrompts[style] || stylePrompts.energetic;
   const lengthGuide = lengthGuides[length] || lengthGuides.medium;
@@ -68,14 +74,24 @@ function generateRJPrompt(
   const radioInfo = `Radio station: ${resolvedRadioStation}
 Host name: ${resolvedHostName}`;
 
+  const extraContentGuide = extraContentType === "joke"
+    ? "Include one brief, original joke naturally in the commentary."
+    : extraContentType === "advertisement"
+      ? "Include one brief, clearly fictional advertisement for a generic product or service. Keep it playful and do not imply a real brand or endorsement."
+      : "Do not add a joke or advertisement in this commentary.";
+  const customInstructions = customSystemPrompt?.trim()
+    ? `\n\nAdditional instructions from the user:\n${customSystemPrompt.trim()}`
+    : "";
+
   const systemPrompt = `${basePrompt} ${lengthGuide}. ${radioInfo}.
 
 Important guidelines:
+- ${extraContentGuide}
 - AVOID using special characters that are not detected by TTS in the commentary, your output will be used to generate audio.
 - AVOID expressions in brackets or parentheses.
 - AVOID saying Alright and Okay okay or similar phrases at the beginning. Cook up new intros.
 - CREATE engaging commentary that connects with listeners. Be natural, enthusiastic, and add personality. Don't read the song titles - make it conversational and fun!
-- ONLY respond with the commentary text, do not include any additional instructions or explanations.`.trim();
+- ONLY respond with the commentary text, do not include any additional instructions or explanations.${customInstructions}`.trim();
 
   let currentTask = `Current song: "${currentSong}"`;
   if (currentSonglyrics) {

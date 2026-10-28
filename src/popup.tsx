@@ -14,6 +14,10 @@ export interface Settings {
   ttsProvider: "fish-audio" | "google-tts" | "murf";
   rjStyle: string;
   commentaryLength: string;
+  customSystemPrompt: string;
+  includeJokes: boolean;
+  includeAdvertisements: boolean;
+  extraContentFrequency: number;
   voiceId: string;
   voiceStyle: string;
   includeHistory: boolean;
@@ -128,6 +132,10 @@ export default function Popup() {
     ttsProvider: "fish-audio",
     rjStyle: "sarcastic",
     commentaryLength: "short",
+    customSystemPrompt: "",
+    includeJokes: true,
+    includeAdvertisements: true,
+    extraContentFrequency: 50,
     voiceId: "ba1a38946dea44609fc4a8fe6113ed88",
     voiceStyle: "Promo",
     includeHistory: false,
@@ -165,7 +173,9 @@ export default function Popup() {
   const restoreScrollTop = useRef(0);
   const scrollSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const popupPreferencesLoaded = useRef(false);
+  const settingsLoaded = useRef(false);
   const [showScrollCue, setShowScrollCue] = useState(false);
+  const [autoSaveState, setAutoSaveState] = useState<"saved" | "saving" | "error">("saved");
 
   const checkScroll = () => {
     if (mainRef.current) {
@@ -198,6 +208,7 @@ export default function Popup() {
         hostName: stored.hostName || "Alexis",
         radioStation: stored.radioStation || "97.7 Youtube FM",
       }));
+      settingsLoaded.current = true;
     });
     chrome.storage.local.get(["popupActiveTab", "popupScrollTop", "providerTests"], (local) => {
       if (local.popupActiveTab) setActiveTab(local.popupActiveTab as TabType);
@@ -278,15 +289,21 @@ export default function Popup() {
     setTimeout(() => setStatus(null), 3500);
   };
 
-  const saveSettings = () => {
-    chrome.storage.sync.set(settings, () => {
-      if (chrome.runtime.lastError) {
-        showStatus("Error: " + chrome.runtime.lastError.message, "error");
-      } else {
-        showStatus("Configuration saved to hardware memory", "success");
-      }
-    });
-  };
+  useEffect(() => {
+    if (!settingsLoaded.current) return;
+    setAutoSaveState("saving");
+    const timer = setTimeout(() => {
+      chrome.storage.sync.set(settings, () => {
+        if (chrome.runtime.lastError) {
+          setAutoSaveState("error");
+          showStatus("Autosave failed: " + chrome.runtime.lastError.message, "error");
+        } else {
+          setAutoSaveState("saved");
+        }
+      });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [settings]);
 
   const exportLogs = () => {
     chrome.storage.local.get(["commentaryLogs"], (result) => {
@@ -582,16 +599,9 @@ export default function Popup() {
               </span>
             </button>
 
-            {/* Save Config Button (Top Right Corner) */}
-            <button
-              id="saveConfigBtn"
-              onClick={saveSettings}
-              className="py-1 px-3 bg-[#006B66] hover:bg-[#008078] text-white border border-[#00D2C4] font-bold rounded flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer font-mono shadow-[0_0_8px_rgba(0,210,196,0.3)]"
-              title="Save configuration to storage"
-            >
-              <span className="material-symbols-outlined text-[16px]">check_circle</span>
-              <span className="text-[11.5px] tracking-wider uppercase font-black">SAVE</span>
-            </button>
+            <span aria-live="polite" className={`text-[10px] font-mono ${autoSaveState === "error" ? "text-rose-400" : autoSaveState === "saving" ? "text-amber-300" : "text-neutral-500"}`}>
+              {autoSaveState === "saving" ? "AUTOSAVING…" : autoSaveState === "error" ? "AUTOSAVE ERROR" : "AUTOSAVED"}
+            </span>
           </div>
         </div>
 
@@ -810,6 +820,46 @@ export default function Popup() {
                   })}
                 </div>
               </div>
+
+              <section className="bg-[#0F1012] border border-[#272B33] rounded p-3 space-y-3">
+                <div>
+                  <div className="text-[12px] font-mono tracking-widest uppercase text-neutral-300 font-bold">COMMENTARY PROMPT</div>
+                  <p className="text-[10.5px] text-neutral-500 mt-1">Add your own instructions to the RJ’s system prompt. Leave blank to use the selected persona only.</p>
+                </div>
+                <textarea
+                  aria-label="Custom system prompt instructions"
+                  value={settings.customSystemPrompt}
+                  onChange={(event) => setSettings((current) => ({ ...current, customSystemPrompt: event.target.value }))}
+                  placeholder="Example: Keep the humor warm and family friendly."
+                  rows={4}
+                  className="w-full resize-y bg-[#08090A] border border-[#272B33] rounded px-3 py-2 text-[12px] text-slate-100 focus:border-[#00D2C4] outline-none"
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="flex items-center gap-2 rounded bg-[#08090A] border border-[#272B33] p-2 text-[11px] text-neutral-200">
+                    <input type="checkbox" checked={settings.includeJokes} onChange={(event) => setSettings((current) => ({ ...current, includeJokes: event.target.checked }))} className="accent-[#00D2C4]" />
+                    Allow random jokes
+                  </label>
+                  <label className="flex items-center gap-2 rounded bg-[#08090A] border border-[#272B33] p-2 text-[11px] text-neutral-200">
+                    <input type="checkbox" checked={settings.includeAdvertisements} onChange={(event) => setSettings((current) => ({ ...current, includeAdvertisements: event.target.checked }))} className="accent-[#00D2C4]" />
+                    Allow fictional ads
+                  </label>
+                </div>
+                <label className="flex items-center justify-between gap-3 text-[11px] text-neutral-300">
+                  <span>Chance per commentary</span>
+                  <select
+                    aria-label="Extra content frequency"
+                    value={settings.extraContentFrequency}
+                    onChange={(event) => setSettings((current) => ({ ...current, extraContentFrequency: Number(event.target.value) }))}
+                    className="bg-[#08090A] border border-[#272B33] rounded px-2 py-1.5 text-slate-100 outline-none focus:border-[#00D2C4]"
+                  >
+                    <option value={10}>Rare · 10%</option>
+                    <option value={25}>Occasional · 25%</option>
+                    <option value={50}>Often · 50%</option>
+                    <option value={100}>Every time · 100%</option>
+                  </select>
+                </label>
+                <p className="text-[10px] text-neutral-500">When selected, the RJ randomly chooses a joke or a generic fictional ad from the enabled options. Save to apply.</p>
+              </section>
 
               {/* Feature Switches (Maschine-style backlit hardware toggles) */}
               <div>
