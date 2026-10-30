@@ -263,6 +263,7 @@ class YouTubeRJMode {
       this.lastProcessedVideo = "";
       return false;
     } finally {
+      DomUtils.hideLoadingIndicator();
       this.isGeneratingCommentary = false;
     }
   }
@@ -296,9 +297,18 @@ class YouTubeRJMode {
       const duckingDb =
         -(Math.max(0, Math.min(100, settings.volumeDucking)) / 100) * 24;
       const duckLevel = Math.pow(10, duckingDb / 20);
-      this.originalVolume = await AudioUtils.duckVolume(video, duckLevel);
+      // Save this before the asynchronous fade so stopping during the fade can
+      // restore the player's volume even before the commentary audio exists.
+      this.originalVolume = video.volume;
       this.duckedVideo = video;
       this.duckLevel = duckLevel;
+      this.originalVolume = await AudioUtils.duckVolume(video, duckLevel);
+      // stopRJMode may have cancelled the fade while it was in progress.
+      if (!this.isRJPlaying) {
+        this.releaseVolumeHold();
+        await AudioUtils.restoreVolume(video, this.originalVolume);
+        return;
+      }
       this.lastAppliedVolume = video.volume;
       this.volumeChangeHandler = () => {
         if (!this.isRJPlaying || this.duckedVideo !== video) return;
@@ -401,17 +411,20 @@ class YouTubeRJMode {
 
   stopRJMode() {
     this.isRJModeActive = false;
+    const video = this.duckedVideo || YouTubeUtils.getVideoElement();
+    const wasPlaying = this.isRJPlaying;
+    this.isRJPlaying = false;
     if (this.activeAudio) {
       this.activeAudio.pause();
       this.activeAudio.currentTime = 0;
       if (this.activeAudioUrl) URL.revokeObjectURL(this.activeAudioUrl);
       this.activeAudio = null;
       this.activeAudioUrl = "";
-      const video = this.duckedVideo || YouTubeUtils.getVideoElement();
+    }
+    if (wasPlaying || this.duckedVideo) {
       this.releaseVolumeHold();
       if (video) void AudioUtils.restoreVolume(video, this.originalVolume);
     }
-    this.isRJPlaying = false;
     this.isGeneratingCommentary = false;
     this.lastProcessedVideo = "";
     DomUtils.updateRJModeButton(false);
@@ -448,7 +461,10 @@ class YouTubeRJMode {
         !this.generatedAudioData
       ) {
         this.getCurrentAndNextTitles();
-        this.generateRJCommentary();
+        const videoId = YouTubeUtils.extractVideoId() || this.currentVideoTitle;
+        if (videoId !== this.lastProcessedVideo) {
+          void this.generateRJCommentary();
+        }
       }
 
       // Start commentary when 30 seconds remain and not already playing
